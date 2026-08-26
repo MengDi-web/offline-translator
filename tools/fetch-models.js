@@ -22,6 +22,16 @@ const RELEASE = process.env.RELEASE_URL || 'https://github.com/MengDi-web/offlin
 // 每个方向需要的小文件（tokenizer/config），Release 与 hf-mirror 都提供
 const SMALL_FILES = ['config.json', 'generation_config.json', 'source.spm', 'target.spm', 'vocab.json'];
 
+// 微调权重的 SHA-256（自有 Release 资产的固定值，用于完整性校验；hf-mirror 预训练回退不校验）
+const FT_HASHES = {
+  'opus-mt-zh-en-ft': '26ad21337e57cb3b93d705664feafc3fbffb1ad378dafa7d139fd4fc6d0db213',
+  'opus-mt-en-zh-ft': 'b5ecff1bba068a7b1f855179f5b1fb4d949d3fe57c8031d21f3822ee0a17ab6e',
+};
+
+function sha256(file) {
+  return execFileSync('shasum', ['-a', '256', file]).toString().trim().split(/\s+/)[0];
+}
+
 const DIRS = {
   'opus-mt-zh-en-ft': { hf: 'Helsinki-NLP/opus-mt-zh-en', bin: 'opus-mt-zh-en-ft-pytorch_model.bin' },
   'opus-mt-en-zh-ft': { hf: 'Helsinki-NLP/opus-mt-en-zh', bin: 'opus-mt-en-zh-ft-pytorch_model.bin' },
@@ -51,7 +61,17 @@ function downloadFromRelease(dir, info) {
   downloadSmallFromHF(outDir, info.hf);   // 小文件与预训练一致，统一从 hf-mirror
   const url = `${RELEASE}/${info.bin}`;
   if (httpOk(url)) {
-    sh(`curl -sL --retry 3 -o "${path.join(outDir, 'pytorch_model.bin')}" "${url}"`);
+    const binPath = path.join(outDir, 'pytorch_model.bin');
+    sh(`curl -sL --retry 3 -o "${binPath}" "${url}"`);
+    const want = FT_HASHES[dir];
+    if (want) {
+      const got = sha256(binPath);
+      if (got !== want) {
+        fs.unlinkSync(binPath);
+        throw new Error(`模型完整性校验失败：${dir} SHA-256 应为 ${want}，实际 ${got}（下载被篡改或损坏，请重试）`);
+      }
+      console.log(`  ✅ SHA-256 校验通过`);
+    }
     console.log(`✅ ${dir} 已从 Release 下载微调权重`);
     return true;
   }

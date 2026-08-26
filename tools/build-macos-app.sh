@@ -19,10 +19,10 @@ if [ ! -x "$NODE_DIR/bin/node" ]; then
 fi
 
 echo "== 2/4 准备划词助手 =="
-if [ ! -x "划词助手" ]; then
-  swiftc -O -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk \
-    -module-cache-path /tmp/swift-module-cache 划词助手.swift -o 划词助手
-fi
+# 始终重新编译（部署目标 macOS 11，兼容 Intel 之前的老系统；不设 target 会默认当前 SDK 版本 26）
+swiftc -O -target arm64-apple-macosx11.0 \
+  -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk \
+  -module-cache-path /tmp/swift-module-cache 划词助手.swift -o 划词助手
 
 echo "== 3/4 准备可搬移 Python（python-build-standalone）=="
 PY_DIR="/tmp/pyportable/python"
@@ -68,11 +68,14 @@ cp miaomiao.icns "$APP/Contents/Resources/miaomiao.icns"
 rsync -a "$PY_DIR/" "$APP/Contents/Resources/python/"          # 可搬移 Python 解释器
 rsync -a /tmp/python-libs/ "$APP/Contents/Resources/python-libs/"
 rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' --exclude '划词助手.app' \
-  --exclude '*.command' --exclude '发布指南.md' --exclude 'windows' --exclude '翻译数据库' --exclude 'neural/probe_servers.py' --exclude 'neural/setup_remote.py' --exclude 'neural/gpu_status.py' --exclude 'neural/build_ft_models.py' \
+  --exclude '*.command' --exclude '发布指南.md' --exclude 'windows' --exclude '翻译数据库' \
+  --exclude 'neural/data' --exclude 'neural/probe_servers.py' --exclude 'neural/setup_remote.py' --exclude 'neural/gpu_status.py' --exclude 'neural/build_ft_models.py' \
   server.js translate.js package.json lib public data neural tools \
   "$APP/Contents/Resources/"
 
-codesign --force --sign - "$APP" 2>/dev/null
+# 组装完成后强制重签（含嵌套二进制：launcher / 划词助手 / node / python）
+codesign --force --sign - --deep "$APP" 2>/dev/null
+codesign --verify --deep --strict "$APP" 2>/dev/null && echo "  签名校验通过" || echo "  (ad-hoc 签名，校验跳过)"
 echo ""
 echo "✅ 完成: $(du -sh "$APP" | cut -f1)  $APP"
 echo "   完全自包含（内置 Node + Python + 模型），双击即用，无需安装任何东西"

@@ -277,6 +277,11 @@ const server = http.createServer(async (req, res) => {
       if (!getSelectionMode()) {
         return sendJson(res, 200, { disabled: true, error: '划词功能未开启（请在网页上点击「开启一键划词」）' });
       }
+      // 同源校验：阻止恶意网页通过 no-cors POST 消耗本地服务（与 /api/selection-mode 一致）
+      const cOrigin = req.headers.origin || '';
+      if (cOrigin && cOrigin !== `http://127.0.0.1:${port}`) {
+        return sendJson(res, 403, { error: '跨源请求被拒绝' });
+      }
       const body = JSON.parse((await readBody(req)) || '{}');
       const t0 = Date.now();
       const result = await context.contextTranslate(body, (text, dir) => safeNmtTranslate(text, dir).then((r) => {

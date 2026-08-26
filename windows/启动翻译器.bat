@@ -2,13 +2,16 @@
 chcp 936 >nul
 cd /d "%~dp0.."
 
+rem 优先使用「一键部署」装好的便携 Node（仅当前会话有效，这里显式加进 PATH）
+if exist "runtime\node\node.exe" set "PATH=%CD%\runtime\node;%PATH%"
+
 echo ============================================
 echo   miaomiao翻译器 (Windows 版)
 echo ============================================
 
 where node >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未找到 Node.js，请先安装: https://nodejs.org
+    echo [错误] 未找到 Node.js，请先双击「一键部署.cmd」完成安装
     pause
     exit /b 1
 )

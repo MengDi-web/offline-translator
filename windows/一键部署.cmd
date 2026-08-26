@@ -10,7 +10,15 @@ echo.
 REM ---------- 1. 便携版 Node ----------
 if not exist "runtime\node\node.exe" (
     echo [1/4] 下载便携版 Node.js ...
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile '%TEMP%\miaomiao-node.zip'; Expand-Archive '%TEMP%\miaomiao-node.zip' -DestinationPath 'runtime' -Force; if (Test-Path 'runtime\node-v22.14.0-win-x64') { Move-Item 'runtime\node-v22.14.0-win-x64' 'runtime\node' -Force }"
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile '%TEMP%\miaomiao-node.zip'"
+    echo        校验 SHA-256 ...
+    certutil -hashfile "%TEMP%\miaomiao-node.zip" SHA256 | findstr /i "55b639295920b219bb2acbcfa00f90393a2789095b7323f79475c9f34795f217" >nul
+    if errorlevel 1 (
+        echo [错误] Node 下载校验失败（文件损坏或被篡改），请重试
+        pause
+        exit /b 1
+    )
+    powershell -NoProfile -Command "Expand-Archive '%TEMP%\miaomiao-node.zip' -DestinationPath 'runtime' -Force; if (Test-Path 'runtime\node-v22.14.0-win-x64') { Move-Item 'runtime\node-v22.14.0-win-x64' 'runtime\node' -Force }"
 ) else (
     echo [1/4] Node 已就绪
 )
@@ -21,6 +29,13 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo [2/4] 未检测到 Python，正在下载并静默安装（约 3 分钟，无需操作）...
     powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe' -OutFile '%TEMP%\miaomiao-python.exe'"
+    echo        校验 SHA-256 ...
+    certutil -hashfile "%TEMP%\miaomiao-python.exe" SHA256 | findstr /i "c6bdf93f4b2de6dfa1a3a847e7c24ae10edf7f6318653d452cd4381415700ada" >nul
+    if errorlevel 1 (
+        echo [错误] Python 下载校验失败（文件损坏或被篡改），请重试
+        pause
+        exit /b 1
+    )
     "%TEMP%\miaomiao-python.exe" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_doc=0
     rem 刷新 PATH
     set "PATH=%LocalAppData%\Programs\Python\Python312;%LocalAppData%\Programs\Python\Python312\Scripts;%PATH%"

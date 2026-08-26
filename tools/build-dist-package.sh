@@ -15,9 +15,13 @@ rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' \
   server.js translate.js package.json README.md LICENSE lib public data neural tools windows \
   /tmp/win-dist/
 rm -f "$ROOT/dist/miaomiao翻译器-win.zip"
-cd /tmp/win-dist && zip -rq "$ROOT/dist/miaomiao翻译器-win.zip" . && cd "$ROOT"
+python3 "$ROOT/tools/zip-utf8.py" /tmp/win-dist "$ROOT/dist/miaomiao翻译器-win.zip"
 
-echo "== 2/2 组装安装包 =="
+echo "== 2/3 打包 macOS 子包（UTF-8 文件名标志）=="
+rm -f "$ROOT/dist/miaomiao翻译器-mac.zip"
+python3 "$ROOT/tools/zip-utf8.py" "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao翻译器-mac.zip" "miaomiao翻译器.app"
+
+echo "== 3/3 组装安装包 =="
 rm -rf "$PKG"
 mkdir -p "$PKG/macOS" "$PKG/Windows"
 cp "$ROOT/dist/miaomiao翻译器-mac.zip" "$PKG/macOS/"
@@ -35,6 +39,9 @@ EOF
 
 cat > "$PKG/macOS/安装说明.txt" <<'EOF'
 macOS（苹果电脑）安装说明 —— 只需 3 步
+
+适用条件：仅支持 Apple 芯片（M1 / M2 / M3 / M4），系统 macOS 11 及以上。
+（Intel 版 Mac 不支持，请勿下载）
 
 1. 双击解压 miaomiao翻译器-mac.zip → 得到 miaomiao翻译器.app
 2. 双击 miaomiao翻译器.app
@@ -56,7 +63,7 @@ Windows 安装说明 —— 只需 2 步
 EOF
 
 cd dist && rm -f miaomiao翻译器-安装包.zip
-zip -rq miaomiao翻译器-安装包.zip "miaomiao翻译器-安装包"
+python3 "$ROOT/tools/zip-utf8.py" "miaomiao翻译器-安装包" "miaomiao翻译器-安装包.zip" "miaomiao翻译器-安装包"
 cd "$ROOT"
 echo ""
 echo "✅ 安装包完成: dist/miaomiao翻译器-安装包.zip ($(du -sh dist/miaomiao翻译器-安装包.zip | cut -f1))"
