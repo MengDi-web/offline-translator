@@ -643,6 +643,51 @@ func showServerHint() {
     popupPanel.show(attr: msg, copy: "", near: NSEvent.mouseLocation)
 }
 
+// MARK: - 自动拉起翻译服务（脱离终端常驻：助手自己保证服务可用）
+func projectRoot() -> URL? {
+    var url = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
+    while url.path != "/" {
+        if FileManager.default.fileExists(atPath: url.appendingPathComponent("server.js").path) {
+            return url
+        }
+        url.deleteLastPathComponent()
+    }
+    return nil
+}
+
+func ensureServer() {
+    guard let root = projectRoot() else { return }
+    let sem = DispatchSemaphore(value: 0)
+    var up = false
+    let task = URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:6688/api/stats")!) { _, resp, _ in
+        if let r = resp as? HTTPURLResponse, r.statusCode == 200 { up = true }
+        sem.signal()
+    }
+    task.resume()
+    _ = sem.wait(timeout: .now() + 2)
+    if up { return }
+    // 服务未运行 → 在项目目录启动 node server.js（后台常驻，不依赖终端）
+    let nodePath = ["/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node"]
+        .first { FileManager.default.isExecutableFile(atPath: $0) }
+    let proc = Process()
+    if let np = nodePath {
+        proc.executableURL = URL(fileURLWithPath: np)
+        proc.arguments = ["server.js"]
+    } else {
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        proc.arguments = ["node", "server.js"]
+    }
+    proc.currentDirectoryURL = root
+    proc.standardOutput = FileHandle.nullDevice
+    proc.standardError = FileHandle.nullDevice
+    do {
+        try proc.run()
+        debugLog("已自动启动翻译服务\n")
+    } catch {
+        debugLog("启动翻译服务失败: \(error)\n")
+    }
+}
+
 // MARK: - 剪贴板监听
 var popupPanel: PopupPanel!
 var settingsPanel: SettingsPanel!
@@ -763,5 +808,6 @@ menu.addItem(quitItem)
 statusItem.menu = menu
 
 debugLog("启动\n")
+ensureServer()          // 服务不在线时自动拉起（脱离终端也可用）
 startMonitor()
 app.run()
