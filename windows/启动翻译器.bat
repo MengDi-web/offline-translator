@@ -28,3 +28,13 @@ if errorlevel 1 (
 
 echo [2/2] 启动划词助手（右键托盘图标可设置/退出）...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "windows\xuanci_helper.ps1"
+if errorlevel 1 (
+    echo.
+    echo 划词助手启动失败，上方是错误信息（截图发给开发者）
+    pause
+)
+if errorlevel 1 (
+    echo.
+    echo 划词助手启动失败，上方是错误信息（截图发给开发者）
+    pause
+)

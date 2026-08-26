@@ -11,9 +11,24 @@
 
 param([switch]$Debug)
 
+# 启动失败兜底：显示错误并停留，避免窗口闪退看不到原因
+trap {
+    Write-Host ''
+    Write-Host '=================================================='
+    Write-Host "启动失败: $_"
+    Write-Host '请把上面的错误信息发给开发者'
+    Write-Host '=================================================='
+    Read-Host '按回车键关闭窗口'
+    exit 1
+}
+
 # 单实例互斥锁: 防止重复启动导致双弹窗/循环翻译
 $singletonMutex = New-Object System.Threading.Mutex($false, 'MiaomiaoXuanciHelper')
-if (-not $singletonMutex.WaitOne(0)) { exit }
+if (-not $singletonMutex.WaitOne(0)) {
+    Write-Host '划词助手已在运行（请看系统托盘图标），无需重复启动'
+    Start-Sleep -Seconds 2
+    exit 1
+}
 
 
 $ErrorActionPreference = 'Stop'
