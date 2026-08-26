@@ -1,0 +1,17 @@
+{
+  "name": "offline-translator",
+  "version": "1.0.0",
+  "description": "本地离线中英互译器：零依赖、无需联网，内置 ECDICT + CC-CEDICT 开源词典数据",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "translate": "node translate.js",
+    "fetch": "node tools/fetch-data.js",
+    "build": "node tools/build-index.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT",
+  "private": true
+}

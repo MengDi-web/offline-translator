@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本地离线翻译器 · 中英互译</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel2: #1e2230;
+    --border: #2a2f42;
+    --text: #e8eaf2;
+    --muted: #8b90a5;
+    --accent: #4f8cff;
+    --accent2: #6ee7b7;
+    --warn: #fbbf24;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; width: 100%; flex: 1; }
+
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, var(--accent), #7c5cff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700;
+  }
+  .brand h1 { font-size: 19px; font-weight: 700; }
+  .brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badges { display: flex; gap: 8px; }
+  .badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(110,231,183,.12); color: var(--accent2);
+    border: 1px solid rgba(110,231,183,.3); display: flex; align-items: center; gap: 5px;
+  }
+  .badge.blue { background: rgba(79,140,255,.12); color: var(--accent); border-color: rgba(79,140,255,.3); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .dir-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .dir-btn {
+    background: var(--panel); color: var(--muted); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 9px; cursor: pointer; font-size: 13px; transition: all .15s;
+  }
+  .dir-btn:hover { color: var(--text); border-color: var(--accent); }
+  .dir-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .input-wrap { position: relative; }
+  textarea {
+    width: 100%; min-height: 120px; resize: vertical;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 16px 54px; font-size: 16px; line-height: 1.6;
+    outline: none; font-family: inherit;
+  }
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,.15); }
+  .input-actions {
+    position: absolute; left: 12px; bottom: 10px; right: 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .hint { font-size: 11px; color: var(--muted); }
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 9px;
+    padding: 9px 22px; font-size: 14px; font-weight: 600; cursor: pointer; transition: filter .15s;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn:disabled { opacity: .5; cursor: wait; }
+  .btn.ghost {
+    background: var(--panel2); color: var(--muted); border: 1px solid var(--border); font-weight: 500;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--accent); }
+
+  .suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-height: 0; }
+  .suggest.hidden { display: none; }
+  .chip {
+    font-size: 12px; background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--border); padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .chip:hover { color: var(--accent); border-color: var(--accent); }
+
+  .result { margin-top: 16px; display: none; }
+  .result.show { display: block; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 14px;
+  }
+  .card .label { font-size: 11px; color: var(--muted); letter-spacing: .08em; margin-bottom: 8px; text-transform: uppercase; }
+  .word-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .word-head .word { font-size: 22px; font-weight: 700; }
+  .word-head .phon { color: var(--muted); font-size: 15px; }
+  .word-head .pos { color: var(--accent2); font-size: 13px; background: rgba(110,231,183,.1); padding: 2px 8px; border-radius: 6px; }
+  .word-head .pinyin { color: var(--accent); font-size: 15px; }
+  .word-head .trad { color: var(--muted); font-size: 14px; }
+  .matched { font-size: 12px; color: var(--warn); margin-bottom: 8px; }
+  .senses { font-size: 15px; line-height: 1.9; }
+  .senses li { list-style: none; padding-left: 18px; position: relative; }
+  .senses li::before { content: ""; position: absolute; left: 0; top: .7em; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+
+  .rough { font-size: 18px; font-weight: 600; line-height: 1.7; margin-bottom: 14px; }
+  .note { font-size: 12px; color: var(--warn); margin-top: 10px; }
+  .gloss { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .gloss th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .gloss td { padding: 7px 10px; border-bottom: 1px solid rgba(42,47,66,.6); vertical-align: top; }
+  .gloss td.hit { color: var(--accent2); }
+  .gloss td.miss { color: var(--danger); }
+
+  .action-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .action-row .btn { padding: 7px 14px; font-size: 13px; }
+
+  .error { color: var(--danger); background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.3); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
+
+  .history { margin-top: 26px; }
+  .history h3 { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+  .hist-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s;
+  }
+  .hist-item:hover { border-color: var(--accent); }
+  .hist-q { font-size: 13px; color: var(--muted); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-r { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-time { font-size: 11px; color: var(--muted); flex: none; }
+
+  footer { text-align: center; color: var(--muted); font-size: 11px; padding: 20px; line-height: 1.8; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="logo">译</div>
+      <div>
+        <h1>本地离线翻译器</h1>
+        <p>中英互译 · 词典数据已内置 · 断网可用</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge blue"><span class="dot"></span>100% 离线</span>
+      <span class="badge" id="dictBadge">加载词典…</span>
+    </div>
+  </header>
+
+  <div class="dir-bar" id="dirBar">
+    <button class="dir-btn active" data-dir="auto">自动检测</button>
+    <button class="dir-btn" data-dir="en2zh">英 → 中</button>
+    <button class="dir-btn" data-dir="zh2en">中 → 英</button>
+  </div>
+
+  <div class="dir-bar" id="modeBar" style="margin-bottom:14px">
+    <span style="font-size:12px;color:var(--muted);margin-right:4px">引擎:</span>
+    <button class="dir-btn active" data-mode="auto">自动（句子走神经）</button>
+    <button class="dir-btn" data-mode="dict">仅词典</button>
+    <button class="dir-btn" data-mode="nmt">仅神经</button>
+  </div>
+
+  <div class="input-wrap">
+    <textarea id="input" placeholder="输入英文或中文，如：hello world / 今天天气很好"></textarea>
+    <div class="input-actions">
+      <span class="hint">Enter 翻译 · Shift+Enter 换行</span>
+      <button class="btn" id="go">翻 译</button>
+    </div>
+  </div>
+  <div class="suggest hidden" id="suggest"></div>
+
+  <div class="result" id="result"></div>
+
+  <div class="history" id="historyWrap" style="display:none">
+    <h3>最近翻译</h3>
+    <div id="history"></div>
+  </div>
+</div>
+
+<footer>
+  数据来源: <a href="https://github.com/skywind3000/ECDICT" target="_blank">ECDICT</a>（英汉词典）·
+  <a href="https://www.mdbg.net/chinese/dictionary?page=cc-cedict" target="_blank">CC-CEDICT</a>（CC-BY-SA 4.0）<br>
+  所有查询均在本地完成，不上传任何内容。
+</footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const input = $('#input'), goBtn = $('#go'), resultBox = $('#result'), suggestBox = $('#suggest');
+let curDir = 'auto';
+let curMode = 'auto';
+let lastResult = null;
+
+const HISTORY_KEY = 'offline-translator-history';
+function getHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; } }
+function addHistory(q, r) {
+  const h = getHistory().filter(x => x.q !== q);
+  h.unshift({ q, r: r.rough || (r.translation ? r.translation[0] : ''), t: Date.now() });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 30)));
+  renderHistory();
+}
+function renderHistory() {
+  const h = getHistory();
+  const wrap = $('#historyWrap');
+  if (!h.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  $('#history').innerHTML = h.map(x =>
+    `<div class="hist-item" data-q="${escapeAttr(x.q)}">
+       <span class="hist-q">${esc(x.q)}</span>
+       <span class="hist-r">${esc(x.r)}</span>
+       <span class="hist-time">${new Date(x.t).toLocaleTimeString()}</span>
+     </div>`).join('');
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return esc(s).replace(/&quot;/g, '&quot;'); }
+
+// 方向切换
+document.querySelectorAll('#dirBar .dir-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#dirBar .dir-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  curDir = b.dataset.dir;
+}));
+
+// 引擎切换
+document.querySelectorAll('#modeBar .dir-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#modeBar .dir-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  curMode = b.dataset.mode;
+}));
+
+// 联想建议（英文输入时）
+let suggestTimer = null;
+input.addEventListener('input', () => {
+  clearTimeout(suggestTimer);
+  const v = input.value.trim();
+  const isEnWord = /^[a-zA-Z][a-zA-Z'-]{1,20}$/.test(v);
+  if (!isEnWord) { suggestBox.classList.add('hidden'); return; }
+  suggestTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/suggest?q=' + encodeURIComponent(v));
+      const j = await r.json();
+      if (j.suggestions && j.suggestions.length) {
+        suggestBox.innerHTML = j.suggestions.map(s => `<span class="chip" data-w="${esc(s)}">${esc(s)}</span>`).join('');
+        suggestBox.classList.remove('hidden');
+        suggestBox.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+          input.value = c.dataset.w; doTranslate();
+        }));
+      } else suggestBox.classList.add('hidden');
+    } catch { suggestBox.classList.add('hidden'); }
+  }, 250);
+});
+
+// 翻译
+async function doTranslate() {
+  const q = input.value.trim();
+  if (!q) return;
+  goBtn.disabled = true; goBtn.textContent = '翻译中…';
+  try {
+    const r = await fetch('/api/translate?q=' + encodeURIComponent(q) + '&dir=' + curDir + '&mode=' + curMode);
+    const j = await r.json();
+    lastResult = j;
+    render(j);
+    addHistory(q, j);
+  } catch (e) {
+    render({ error: '请求失败: ' + e.message });
+  } finally {
+    goBtn.disabled = false; goBtn.textContent = '翻 译';
+  }
+}
+
+function speak(text, lang) {
+  fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, lang }),
+  }).catch(() => {});
+}
+
+function cardHtml(r) {
+  const dirLabel = r.dir === 'en2zh' ? '英 → 中' : r.dir === 'zh2en' ? '中 → 英' : r.dir;
+  if (r.engine === 'nmt') {
+    return `<div class="card">
+      <div class="label">${dirLabel} · 神经翻译 <span style="color:var(--accent2);font-size:10px;border:1px solid rgba(110,231,183,.3);padding:1px 6px;border-radius:999px">本地模型</span></div>
+      <div class="rough">${esc(r.translation)}</div>
+      ${r.dictRough ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">词典直译参考: ${esc(r.dictRough)}</div>` : ''}
+      <div class="action-row">
+        <button class="btn ghost copyBtn">复制</button>
+        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'zh2en' ? 'zh' : 'en'}">🔊 朗读原文</button>
+        <button class="btn ghost ttsOutBtn" data-lang="${r.dir === 'zh2en' ? 'en' : 'zh'}">🔊 朗读译文</button>
+      </div>
+    </div>`;
+  }
+  if (r.kind === 'word') {
+    return `<div class="card">
+      <div class="label">${dirLabel} · 单词 / 短语</div>
+      <div class="word-head">
+        <span class="word">${esc(r.input)}</span>
+        ${r.matched ? `<span class="phon">(原形: ${esc(r.matched)}${r.phonetic ? ` /${esc(r.phonetic)}/` : ''})</span>` : r.phonetic ? `<span class="phon">/${esc(r.phonetic)}/</span>` : ''}
+        ${r.pos ? `<span class="pos">${esc(r.pos)}</span>` : ''}
+        ${r.pinyin ? `<span class="pinyin">${esc(r.pinyin)}</span>` : ''}
+        ${r.traditional && r.traditional !== r.simplified ? `<span class="trad">繁体: ${esc(r.traditional)}</span>` : ''}
+      </div>
+      ${r.matched && !r.phonetic ? `<div class="matched">已按原形「${esc(r.matched)}」查询</div>` : ''}
+      <ul class="senses">${r.translation.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+      <div class="action-row">
+        <button class="btn ghost copyBtn">复制</button>
+        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'en2zh' ? 'en' : 'zh'}">🔊 朗读原文</button>
+        <button class="btn ghost ttsOutBtn" data-lang="${r.dir === 'en2zh' ? 'zh' : 'en'}">🔊 朗读译文</button>
+      </div>
+    </div>`;
+  }
+  if (r.kind === 'sentence') {
+    return `<div class="card">
+      <div class="label">${dirLabel} · 句子直译</div>
+      <div class="rough">${esc(r.rough)}</div>
+      <table class="gloss">
+        <tr><th>原文片段</th><th>词性/注音</th><th>释义</th></tr>
+        ${r.gloss.map(g => `<tr>
+          <td>${esc(g.token)}${g.matched ? ` <span style="color:var(--warn);font-size:11px">(=${esc(g.matched)})</span>` : ''}</td>
+          <td>${esc(g.phonetic || g.pinyin || '')}</td>
+          <td class="${g.hit ? 'hit' : 'miss'}">${g.hit ? esc(g.translation) : '未收录'}</td>
+        </tr>`).join('')}
+      </table>
+      <div class="note">⚠ ${esc(r.note)}</div>
+      <div class="action-row">
+        <button class="btn ghost copyBtn">复制译文</button>
+        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'en2zh' ? 'en' : 'zh'}">🔊 朗读原文</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="card"><div class="label">${dirLabel}</div>
+    <div class="rough">未在词典中找到「${esc(r.input)}」</div>
+    ${r.suggestions && r.suggestions.length ? `<div class="suggest" style="display:flex;margin-top:12px">${r.suggestions.map(s => `<span class="chip" data-w="${esc(s)}">${esc(s)}</span>`).join('')}</div>` : ''}
+    <div class="action-row"><button class="btn ghost copyBtn">复制</button></div>
+  </div>`;
+}
+
+function render(r, container) {
+  container = container || resultBox;
+  container.classList.add('show');
+
+  if (r.error) {
+    let html = `<div class="error">${esc(r.error)}</div>`;
+    if (r.suggestions && r.suggestions.length) {
+      html += `<div class="suggest" style="display:flex">${r.suggestions.map(s => `<span class="chip" data-w="${esc(s)}">${esc(s)}</span>`).join('')}</div>`;
+      setTimeout(() => {
+        container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
+          input.value = c.dataset.w; doTranslate();
+        }));
+      }, 0);
+    }
+    container.innerHTML = html;
+    return;
+  }
+
+  if (r.kind === 'mixed') {
+    container.innerHTML = r.parts.map(p => cardHtml(p)).join('<div style="height:14px"></div>');
+  } else {
+    container.innerHTML = cardHtml(r);
+  }
+
+  // 事件绑定（作用域限定在 container 内，支持多卡片）
+  container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
+    input.value = c.dataset.w; doTranslate();
+  }));
+  container.querySelectorAll('.copyBtn').forEach(btn => btn.addEventListener('click', () => {
+    let txt;
+    if (r.engine === 'nmt') txt = r.translation;
+    else if (r.kind === 'mixed') txt = r.rough;
+    else if (r.kind === 'word') txt = (r.translation || []).join('；');
+    else txt = r.rough || '';
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.textContent = '已复制 ✓';
+      setTimeout(() => { btn.textContent = '复制'; }, 1200);
+    });
+  }));
+  container.querySelectorAll('.ttsBtn').forEach(btn => btn.addEventListener('click', () => speak(r.input, btn.dataset.lang)));
+  container.querySelectorAll('.ttsOutBtn').forEach(btn => btn.addEventListener('click', () => {
+    const txt = r.engine === 'nmt' ? r.translation : r.kind === 'word' ? (r.translation || [])[0] : r.rough;
+    speak(txt, btn.dataset.lang);
+  }));
+}
+
+// 快捷键
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doTranslate(); }
+});
+goBtn.addEventListener('click', doTranslate);
+
+// 历史点击
+$('#history').addEventListener('click', (e) => {
+  const item = e.target.closest('.hist-item');
+  if (item) { input.value = item.dataset.q; doTranslate(); }
+});
+
+// 词典状态
+fetch('/api/stats').then(r => r.json()).then(s => {
+  const nmtTxt = s.nmt && s.nmt.ready ? '神经就绪' : (s.nmt && s.nmt.available ? '神经加载中' : '词典模式');
+  $('#dictBadge').textContent = `EN ${s.enCommon.toLocaleString()} 词 · ZH ${s.zhKeys.toLocaleString()} 词条 · ${nmtTxt}`;
+}).catch(() => {});
+
+renderHistory();
+</script>
+</body>
+</html>

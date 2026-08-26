@@ -1,0 +1,17 @@
+.DS_Store
+node_modules/
+*.log
+/tmp/
+neural/data/clean/
+neural/data/mix/
+neural/data/long/
+neural/data/raw/
+neural/data/spm/
+neural/checkpoints/
+neural/models/
+# 模型走 GitHub Release 附件，不入库（超 100MB 限制）
+# 含服务器凭据的训练辅助脚本，不入库
+neural/probe_servers.py
+neural/setup_remote.py
+neural/gpu_status.py
+neural/build_ft_models.py
