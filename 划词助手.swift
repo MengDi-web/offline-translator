@@ -186,6 +186,7 @@ final class PopupPanel: NSPanel {
     let scroll = NSScrollView()
     let textView = DragTextView()
     let copyBtn = NSButton()
+    let settingsBtn = NSButton()
     let closeBtn = NSButton()
     var copyText = ""
 
@@ -225,6 +226,11 @@ final class PopupPanel: NSPanel {
         copyBtn.bezelStyle = .rounded
         copyBtn.target = self
         copyBtn.action = #selector(copyTapped)
+        settingsBtn.title = "设置"
+        settingsBtn.font = NSFont.systemFont(ofSize: 11)
+        settingsBtn.bezelStyle = .rounded
+        settingsBtn.target = self
+        settingsBtn.action = #selector(settingsTapped)
         closeBtn.title = "✕"
         closeBtn.font = NSFont.systemFont(ofSize: 11)
         closeBtn.bezelStyle = .rounded
@@ -232,7 +238,7 @@ final class PopupPanel: NSPanel {
         closeBtn.action = #selector(closeTapped)
         styleButtons()
 
-        let bar = NSStackView(views: [copyBtn, closeBtn])
+        let bar = NSStackView(views: [copyBtn, settingsBtn, closeBtn])
         bar.orientation = .horizontal
         bar.spacing = 8
         bar.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 8, right: 12)
@@ -275,6 +281,15 @@ final class PopupPanel: NSPanel {
         }
     }
     @objc func closeTapped() { orderOut(nil) }
+    @objc func settingsTapped() {
+        guard settingsPanel != nil else { return }
+        settingsPanel.refreshLabels()
+        NSApp.activate(ignoringOtherApps: true)
+        settingsPanel.makeKeyAndOrderFront(nil)
+        settingsPanel.orderFrontRegardless()
+        settingsPanel.center()
+        DispatchQueue.main.async { settingsPanel.resizeWindow() }
+    }
 
     func size(for attr: NSAttributedString, maxWidth: CGFloat) -> NSSize {
         let container = NSTextContainer(containerSize: NSSize(width: maxWidth, height: .greatestFiniteMagnitude))
@@ -332,6 +347,7 @@ final class PopupPanel: NSPanel {
             btn.contentTintColor = tc
         }
         apply(copyBtn, Settings.copyColor)
+        apply(settingsBtn, Settings.copyColor)
         apply(closeBtn, Settings.closeColor)
     }
 }

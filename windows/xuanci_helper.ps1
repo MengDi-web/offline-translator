@@ -1,4 +1,4 @@
-﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -123,6 +123,15 @@ function Show-Popup($resp) {
     $copyBtn.FlatAppearance.BorderSize = 0
     $copyBtn.Cursor = 'Hand'
 
+    $settingsBtn = New-Object System.Windows.Forms.Button
+    $settingsBtn.Text = '设置'
+    $settingsBtn.FlatStyle = 'Flat'
+    $settingsBtn.BackColor = HexToColor $cfg.copyColor
+    $settingsBtn.ForeColor = [System.Drawing.Color]::White
+    $settingsBtn.FlatAppearance.BorderSize = 0
+    $settingsBtn.Cursor = 'Hand'
+    $settingsBtn.Add_Click({ Show-Settings })
+
     $closeBtn = New-Object System.Windows.Forms.Button
     $closeBtn.Text = '✕'
     $closeBtn.FlatStyle = 'Flat'
@@ -190,6 +199,7 @@ function Show-Popup($resp) {
     $f.Controls.Add($title)
     $f.Controls.Add($bodyLbl)
     $f.Controls.Add($copyBtn)
+    $f.Controls.Add($settingsBtn)
     $f.Controls.Add($closeBtn)
 
     # 布局
@@ -201,6 +211,7 @@ function Show-Popup($resp) {
     $bodyLbl.Height = [Math]::Min(360, [Math]::Max(40, [int]($bodyLbl.PreferredHeight + 12)))
     $f.ClientSize = New-Object System.Drawing.Size($w, $bodyLbl.Bottom + 40)
     $copyBtn.SetBounds(14, $bodyLbl.Bottom + 6, 90, 28)
+    $settingsBtn.SetBounds(110, $bodyLbl.Bottom + 6, 64, 28)
     $closeBtn.SetBounds($w - 46, $bodyLbl.Bottom + 6, 32, 28)
 
     # 圆角（WinForms 原生不支持，这里用 Region 近似）
