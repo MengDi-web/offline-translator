@@ -11,7 +11,7 @@ mkdir -p /tmp/win-dist
 rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' \
   --exclude '划词助手' --exclude '划词助手.app' --exclude '*.command' \
   --exclude '*.icns' --exclude 'miaomiao图标.png' --exclude '翻译数据库' \
-  --exclude 'neural/models' --exclude 'neural/data' --exclude '部署说明.md' --exclude '发布指南.md' \
+  --exclude 'neural/models' --exclude 'neural/data' --exclude 'neural/probe_servers.py' --exclude 'neural/setup_remote.py' --exclude 'neural/gpu_status.py' --exclude 'neural/build_ft_models.py' --exclude '部署说明.md' --exclude '发布指南.md' \
   server.js translate.js package.json README.md LICENSE lib public data neural tools windows \
   /tmp/win-dist/
 rm -f "$ROOT/dist/miaomiao翻译器-win.zip"

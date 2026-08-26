@@ -68,7 +68,7 @@ cp miaomiao.icns "$APP/Contents/Resources/miaomiao.icns"
 rsync -a "$PY_DIR/" "$APP/Contents/Resources/python/"          # 可搬移 Python 解释器
 rsync -a /tmp/python-libs/ "$APP/Contents/Resources/python-libs/"
 rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' --exclude '划词助手.app' \
-  --exclude '*.command' --exclude '发布指南.md' --exclude 'windows' --exclude '翻译数据库' \
+  --exclude '*.command' --exclude '发布指南.md' --exclude 'windows' --exclude '翻译数据库' --exclude 'neural/probe_servers.py' --exclude 'neural/setup_remote.py' --exclude 'neural/gpu_status.py' --exclude 'neural/build_ft_models.py' \
   server.js translate.js package.json lib public data neural tools \
   "$APP/Contents/Resources/"
 
