@@ -679,7 +679,21 @@ func normalizeWrappedText(_ text: String) -> String {
             }
             out += lines[i]
         }
-        return out
+        // 统一字间距（PDF 提取常见）：去零宽字符/软连字符；特殊空格归一到普通空格；
+        // 连续空格合并；CJK 之间的空格循环删除（"A B C" 连排需多轮）
+        var t = out
+        let zeroWidth = "\u{200B}\u{200C}\u{200D}\u{FEFF}\u{00AD}"
+        t = t.replacingOccurrences(of: "[\(zeroWidth)]", with: "", options: .regularExpression)
+        let specialSpaces = "\u{00A0}\u{202F}\u{3000}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{205F}"
+        t = t.replacingOccurrences(of: "[\(specialSpaces)]+", with: " ", options: .regularExpression)
+        t = t.replacingOccurrences(of: " +", with: " ", options: .regularExpression)
+        let cjk = "\u{3400}-\u{4DBF}\u{4E00}-\u{9FFF}\u{F900}-\u{FAFF}"
+        var prev = ""
+        repeat {
+            prev = t
+            t = t.replacingOccurrences(of: "([\(cjk)])\\s+([\(cjk)])", with: "$1$2", options: .regularExpression)
+        } while t != prev
+        return t
     }.joined(separator: "\n\n")
 }
 
