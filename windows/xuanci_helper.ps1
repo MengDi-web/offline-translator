@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -21,9 +21,9 @@ $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 
 # ---------- 默认配置 ----------
 $DEFAULTS = @{
-    width = 380
+    width = 350
     origFontSize = 14
-    transFontSize = 16
+    transFontSize = 15
     opacity = 0.65
     radius = 20
     bgColor = '#000000'    # 黑底
