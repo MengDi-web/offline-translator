@@ -9,6 +9,14 @@ if exist "%ROOT%\runtime\node\node.exe" set "PATH=%ROOT%\runtime\node;%PATH%"
 echo ============================================
 echo   miaomiao翻译器 (Windows 版)
 echo ============================================
+if not exist "%ROOT%\server.js" (
+    echo [错误] 找不到翻译程序 server.js
+    echo        你现在是在「压缩包里面」直接双击运行的，这样不行！
+    echo        请先退出，右键压缩包选「全部解压」，
+    echo        再进入解压出来的文件夹里的 windows 文件夹，运行本脚本。
+    pause
+    exit /b 1
+)
 
 where node >nul 2>&1
 if errorlevel 1 (

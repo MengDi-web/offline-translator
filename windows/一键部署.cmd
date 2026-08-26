@@ -1,6 +1,14 @@
 @echo off
 chcp 936 >nul
-cd /d "%~dp0.."
+cd /d "%~dp0.."
+if not exist "server.js" (
+    echo [错误] 找不到翻译程序 server.js
+    echo        你现在是在「压缩包里面」直接双击运行的，这样不行！
+    echo        请先退出，右键压缩包选「全部解压」，
+    echo        再进入解压出来的文件夹里的 windows 文件夹，运行本脚本。
+    pause
+    exit /b 1
+)
 echo ==============================================
 echo   miaomiao翻译器 · 一键部署（只需运行一次）
 echo   —— 自动准备 Node、Python、模型，之后免操作
