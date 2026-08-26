@@ -50,20 +50,20 @@ enum Settings {
     static let transColorKey = "popupTransColor"
     static let radiusKey = "popupRadius"
 
-    static var width: CGFloat { CGFloat(UserDefaults.standard.double(forKey: widthKey) != 0 ? UserDefaults.standard.double(forKey: widthKey) : 350) }
-    static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 14) }
-    static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 15) }
-    static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.65 }
+    static var width: CGFloat { CGFloat(UserDefaults.standard.double(forKey: widthKey) != 0 ? UserDefaults.standard.double(forKey: widthKey) : 301) }
+    static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 15) }
+    static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 16) }
+    static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.75 }
     // 默认苹果配色（与网页一致）：米黄奶油底 + 苹果红
     static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0x000000) }
-    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFBF6EC) }
+    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFBF6C6) }
     static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0xFFFFFF) }
-    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFF3B30) }
-    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xFBF6EC) }
-    static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 20) }
+    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFF5648) }
+    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xFBF6CF) }
+    static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 16) }
 
     static let settingsVersionKey = "settingsVersion"
-    static let defaultsVersion = 3   // 默认值每变更一次 +1，旧保存值会被自动清除
+    static let defaultsVersion = 4   // 读取本地调整后的默认形式   // 默认值每变更一次 +1，旧保存值会被自动清除
 
     // 默认值升级时清除旧保存的设置（保证新默认值生效，无需手动恢复默认）
     static func migrateIfNeeded() {
@@ -485,6 +485,12 @@ final class SettingsPanel: NSPanel {
 
         let resetBtn = NSButton(title: "恢复默认", target: self, action: #selector(resetTapped))
         resetBtn.bezelStyle = .rounded
+        let confirmBtn = NSButton(title: "确认", target: self, action: #selector(confirmTapped))
+        confirmBtn.bezelStyle = .rounded
+        confirmBtn.keyEquivalent = "\r"   // 回车即确认
+        let btnRow = NSStackView(views: [resetBtn, confirmBtn])
+        btnRow.orientation = .horizontal
+        btnRow.spacing = 10
 
         root.orientation = .vertical
         root.spacing = 8
@@ -495,7 +501,7 @@ final class SettingsPanel: NSPanel {
             wrap.spacing = 4
             root.addArrangedSubview(wrap)
         }
-        root.addArrangedSubview(resetBtn)
+        root.addArrangedSubview(btnRow)
         root.translatesAutoresizingMaskIntoConstraints = false
         contentView?.addSubview(root)
         NSLayoutConstraint.activate([
@@ -535,23 +541,29 @@ final class SettingsPanel: NSPanel {
     }
 
     @objc func changed() {
+        // 暂存：只更新数值显示，点「确认」后才保存并应用到弹窗
         refreshLabels()
+    }
+    @objc func confirmTapped() {
         Settings.save(width: CGFloat(widthSlider.doubleValue), radius: CGFloat(radiusSlider.doubleValue),
                       origFontSize: CGFloat(origFontSlider.doubleValue), transFontSize: CGFloat(transFontSlider.doubleValue),
                       opacity: CGFloat(opacitySlider.doubleValue),
                       bgColor: bgWell.color, copyColor: copyWell.color, closeColor: closeWell.color,
                       origColor: origColorWell.color, transColor: transColorWell.color)
-        applyToPopup()
+        applyToPopup()          // 弹窗形式立即更新
+        self.orderOut(nil)      // 关闭设置窗口
     }
     @objc func resetTapped() {
+        // 重置控件到默认值（暂存，点「确认」后应用）
         Settings.reset()
-        widthSlider.doubleValue = 350; radiusSlider.doubleValue = 20
-        origFontSlider.doubleValue = 14; transFontSlider.doubleValue = 15
-        opacitySlider.doubleValue = 0.65
+        widthSlider.doubleValue = Double(Settings.width)
+        radiusSlider.doubleValue = Double(Settings.radius)
+        origFontSlider.doubleValue = Double(Settings.origFontSize)
+        transFontSlider.doubleValue = Double(Settings.transFontSize)
+        opacitySlider.doubleValue = Double(Settings.opacity)
         origColorWell.color = Settings.origColor; transColorWell.color = Settings.transColor
         bgWell.color = Settings.bgColor; copyWell.color = Settings.copyColor; closeWell.color = Settings.closeColor
         refreshLabels()
-        applyToPopup()
     }
     func refreshLabels() {
         widthLabel.stringValue = "\(Int(widthSlider.doubleValue))"
