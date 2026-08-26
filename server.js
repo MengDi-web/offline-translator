@@ -83,8 +83,16 @@ function startNmt() {
       if (line.startsWith('{')) {
         try {
           const msg = JSON.parse(line);
-          const job = nmtQueue.shift();
-          if (job) job.resolve(msg);
+          // 按 msg.id 精确匹配队列项（超时被移除后迟到的响应不得错配给其他请求）
+          if (msg && typeof msg.id === 'number') {
+            const i = nmtQueue.findIndex((j) => j.id === msg.id);
+            if (i >= 0) {
+              const job = nmtQueue.splice(i, 1)[0];
+              job.resolve(msg);
+            } else {
+              console.log(`[nmt] 丢弃迟到响应 id=${msg.id}（请求已超时）`);
+            }
+          }
         } catch { /* 忽略坏行 */ }
       } else {
         console.log('[nmt]', line);
@@ -105,8 +113,17 @@ function nmtRequest(text, dir, timeoutMs = 60000) {
   if (!nmt || !nmtReady) return Promise.resolve({ error: 'nmt 未就绪' });
   const id = ++nmtId;
   return new Promise((resolve) => {
-    nmtQueue.push({ id, resolve });
-    nmt.stdin.write(JSON.stringify({ id, text, dir }) + '\n');
+    const job = { id, resolve };
+    nmtQueue.push(job);
+    try {
+      nmt.stdin.write(JSON.stringify({ id, text, dir }) + '\n');
+    } catch {
+      // Python 子进程刚退出、exit 回调尚未置空 nmt 的间隙：同步写入会抛异常 → 优雅降级
+      const i = nmtQueue.indexOf(job);
+      if (i >= 0) nmtQueue.splice(i, 1);
+      resolve({ error: 'nmt 后端不可用' });
+      return;
+    }
     setTimeout(() => {
       const i = nmtQueue.findIndex((j) => j.id === id);
       if (i >= 0) { nmtQueue.splice(i, 1); resolve({ error: 'nmt 超时' }); }
@@ -118,9 +135,13 @@ function nmtRequest(text, dir, timeoutMs = 60000) {
  *  Marian 模型对代码/符号密集输入会陷入循环输出（如连续反斜杠），在此截断。 */
 function sanitizeNmtOutput(text) {
   if (!text) return '';
-  const s = String(text);
+  let s = String(text);
   const m = s.match(/(.)\1{7,}/);
-  if (m) return s.slice(0, m.index).trim();
+  if (m) s = s.slice(0, m.index).trim();
+  // 整段为同一短单元重复（如单词翻译 "苹果苹果"、"好好好好"）→ 折叠为一份。
+  // 重复单元要求 ≥2 字符，避免误伤 "哈哈"（haha）这类合法双字词。
+  const rep = s.match(/^(.{2,12})\1+$/);
+  if (rep) s = rep[1];
   return s.trim();
 }
 
@@ -239,6 +260,11 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/selection-mode') {
       if (req.method === 'POST') {
+        // 仅允许本页面（同源）切换划词开关：阻止恶意网页通过 no-cors POST 篡改
+        const origin = req.headers.origin || '';
+        if (origin && origin !== `http://127.0.0.1:${port}`) {
+          return sendJson(res, 403, { error: '跨源请求被拒绝' });
+        }
         const body = JSON.parse((await readBody(req)) || '{}');
         const ok = setSelectionMode(body.enabled === true);
         return sendJson(res, ok ? 200 : 500, { enabled: getSelectionMode() });
@@ -297,6 +323,19 @@ if (process.env.PORT) port = parseInt(process.env.PORT, 10);
 
 dict.load();
 startNmt();
+
+// 端口被占用（服务已在运行 / 双击两次启动器）→ 友好提示并正常退出，不抛崩溃堆栈
+server.on('error', (e) => {
+  if (e && e.code === 'EADDRINUSE') {
+    console.log('');
+    console.log('  miaomiao翻译器：服务已在运行');
+    console.log(`  请直接打开 http://127.0.0.1:${port} 使用（或先关闭旧进程再启动）`);
+    console.log('');
+    process.exit(0);
+  }
+  console.error('  [启动失败]', e.message);
+  process.exit(1);
+});
 
 server.listen(port, '127.0.0.1', () => {
   console.log('');
