@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -290,6 +290,7 @@ $timer.add_Tick({
         }
         $resp = Request-Translation $t
         if ($resp) {
+            if ($resp.disabled) { return }   # 网页「开启一键划词」未开 → 不弹窗
             Show-Popup $resp
         } else {
             Show-Popup @{ error = '翻译服务未运行，请先启动: node server.js' }

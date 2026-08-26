@@ -825,6 +825,10 @@ func startMonitor() {
             debugLog("上下文: \(context.isEmpty ? "无" : "\(context.count) 字符")\n")
             let resp = requestTranslation(selection: text, context: context, bounds: nil)
             DispatchQueue.main.async {
+                // 网页「开启一键划词」未开 → 不弹窗
+                if let resp = resp, let dis = resp["disabled"] as? Bool, dis {
+                    return
+                }
                 if let resp = resp {
                     let (attr, copy) = buildAttributed(resp)
                     popupPanel.show(attr: attr, copy: copy, near: NSEvent.mouseLocation)
@@ -884,7 +888,7 @@ let controller = AppController()
 // 菜单栏图标（设置按钮）
 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 if let btn = statusItem.button {
-    btn.title = "喵"
+    btn.title = "译"
     btn.font = NSFont.systemFont(ofSize: 13, weight: .bold)
 }
 let menu = NSMenu()

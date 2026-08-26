@@ -25,6 +25,23 @@ const context = require('./lib/context');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
+const MODE_FILE = path.join(ROOT, 'data', 'selection-mode.json');
+
+// ---------- 一键划词总开关 ----------
+function getSelectionMode() {
+  try {
+    if (fs.existsSync(MODE_FILE)) {
+      return JSON.parse(fs.readFileSync(MODE_FILE, 'utf8')).enabled === true;
+    }
+  } catch {}
+  return false;   // 默认关闭，需在网页点「开启一键划词」
+}
+function setSelectionMode(on) {
+  try {
+    fs.writeFileSync(MODE_FILE, JSON.stringify({ enabled: !!on }));
+    return true;
+  } catch { return false; }
+}
 
 // ---------- 神经翻译后端（常驻 Python 子进程，完全离线） ----------
 // Python 路径：优先环境变量 NMT_PY；macOS 默认 /tmp 的 venv；Windows 默认 neural/.venv
@@ -186,7 +203,20 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, result);
     }
 
+    if (p === '/api/selection-mode') {
+      if (req.method === 'POST') {
+        const body = JSON.parse((await readBody(req)) || '{}');
+        const ok = setSelectionMode(body.enabled === true);
+        return sendJson(res, ok ? 200 : 500, { enabled: getSelectionMode() });
+      }
+      return sendJson(res, 200, { enabled: getSelectionMode() });
+    }
+
     if (p === '/api/context-translate' && req.method === 'POST') {
+      // 一键划词未开启 → 直接拒绝（划词功能不生效）
+      if (!getSelectionMode()) {
+        return sendJson(res, 200, { disabled: true, error: '划词功能未开启（请在网页上点击「开启一键划词」）' });
+      }
       const body = JSON.parse((await readBody(req)) || '{}');
       const t0 = Date.now();
       const result = await context.contextTranslate(body, (text, dir) => nmtRequest(text, dir).then((r) => {

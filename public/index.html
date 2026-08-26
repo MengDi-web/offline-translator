@@ -53,6 +53,9 @@
     font-weight: 500;
   }
   .badge.green { background: rgba(34, 139, 80, .10); color: #1f7a45; border-color: rgba(34, 139, 80, .25); }
+  .toggle-btn { cursor: pointer; font-weight: 600; background: #fff; color: #e5352b; border-color: #e5352b; transition: all .15s; }
+  .toggle-btn:hover { background: var(--accent-soft); }
+  .toggle-btn.on { background: #e5352b; color: #fff; border-color: #e5352b; box-shadow: 0 3px 10px rgba(229,53,43,.25); }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
   .dir-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -132,7 +135,7 @@
 
   .error { color: var(--danger); background: rgba(192, 57, 43, .07); border: 1px solid rgba(192, 57, 43, .25); border-radius: 12px; padding: 12px 16px; font-size: 14px; }
 
-  /* 欢迎弹窗（苹果配色 + 猫猫） */
+  /* 欢迎弹窗（苹果配色） */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(60, 40, 20, .35);
     display: flex; align-items: center; justify-content: center; z-index: 100;
@@ -182,14 +185,15 @@
 <div class="container">
   <header>
     <div class="brand">
-      <div class="logo">🐱</div>
+      <div class="logo">译</div>
       <div>
         <h1>miaomiao翻译器</h1>
-        <p>中英互译 · 完全离线 · 喵～</p>
+        <p>中英互译 · 词典数据已内置 · 断网可用</p>
       </div>
     </div>
     <div class="badges">
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
+      <button class="badge toggle-btn" id="selectionBtn" title="开启后，划词+Cmd/Ctrl+C 才会弹翻译">开启一键划词</button>
       <span class="badge" id="dictBadge">加载词典…</span>
     </div>
   </header>
@@ -226,19 +230,19 @@
 
 <div class="modal-overlay" id="welcome" style="display:none">
   <div class="modal">
-    <div class="cat">🐱</div>
-    <h2>喵喵！欢迎来到 miaomiao翻译器</h2>
-    <p>🐾 划词翻译：选中电脑上任何文字，按 <b>Cmd+C / Ctrl+C</b>，翻译弹窗马上出现～</p>
-    <p>🐾 想关掉弹窗？点弹窗上的「<b>✕</b>」就好啦，它不会自动打扰你喵。</p>
-    <p>🐾 想让弹窗更合心意？菜单栏「<b>喵</b>」图标 → 设置…（或点弹窗上的「设置」键）</p>
-    <p>🐾 网页翻译：在下面输入框打字，回车立刻翻译！断网也能用哦。</p>
-    <button class="btn" id="welcomeOk">喵，明白啦！</button>
-    <div class="hint">（本说明只显示这一次，之后可以直接用）</div>
+    <div class="cat">🔤</div>
+    <h2>欢迎使用 miaomiao翻译器</h2>
+    <p>▸ 一键划词：点上方「<b>开启一键划词</b>」后，选中电脑上任何文字，按 <b>Cmd+C / Ctrl+C</b>，翻译弹窗马上出现。</p>
+    <p>▸ 想关掉弹窗？点弹窗上的「<b>✕</b>」即可。</p>
+    <p>▸ 想让弹窗更合心意？菜单栏图标 → 设置…（或点弹窗上的「设置」键）</p>
+    <p>▸ 网页翻译：在下面输入框打字，回车立刻翻译。断网也能用。</p>
+    <button class="btn" id="welcomeOk">知道了</button>
+    <div class="hint">（本说明只显示这一次）</div>
   </div>
 </div>
 
 <footer>
-  🐾 miaomiao翻译器 · 中英互译 · 完全离线 · 喵～
+  miaomiao翻译器 · 中英互译 · 完全离线
   <br>数据来源: <a href="https://github.com/skywind3000/ECDICT" target="_blank">ECDICT</a>（英汉词典）·
   <a href="https://www.mdbg.net/chinese/dictionary?page=cc-cedict" target="_blank">CC-CEDICT</a>（CC-BY-SA 4.0）<br>
   所有查询均在本地完成，不上传任何内容。
@@ -444,6 +448,32 @@ $('#history').addEventListener('click', (e) => {
   const item = e.target.closest('.hist-item');
   if (item) { input.value = item.dataset.q; doTranslate(); }
 });
+
+// 一键划词开关
+(async function initSelectionMode() {
+  const btn = $('#selectionBtn');
+  try {
+    const r = await fetch('/api/selection-mode');
+    const j = await r.json();
+    applyMode(j.enabled);
+  } catch {}
+  btn.addEventListener('click', async () => {
+    const isOn = btn.classList.contains('on');
+    try {
+      await fetch('/api/selection-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !isOn }),
+      });
+      applyMode(!isOn);
+    } catch {}
+  });
+  function applyMode(on) {
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? '划词已开启' : '开启一键划词';
+    btn.title = on ? '划词功能已开启（划词 + Cmd/Ctrl+C 即弹翻译）' : '开启后，划词 + Cmd/Ctrl+C 才会弹翻译';
+  }
+})();
 
 // 首次访问显示使用说明
 (function showWelcome() {
