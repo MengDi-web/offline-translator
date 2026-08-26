@@ -53,9 +53,26 @@
     font-weight: 500;
   }
   .badge.green { background: rgba(34, 139, 80, .10); color: #1f7a45; border-color: rgba(34, 139, 80, .25); }
-  .toggle-btn { cursor: pointer; font-weight: 600; background: #fff; color: #e5352b; border-color: #e5352b; transition: all .15s; }
-  .toggle-btn:hover { background: var(--accent-soft); }
-  .toggle-btn.on { background: #e5352b; color: #fff; border-color: #e5352b; box-shadow: 0 3px 10px rgba(229,53,43,.25); }
+  /* 一键划词：醒目大按钮 + 悬停说明 */
+  .selection-panel { position: relative; display: flex; justify-content: center; margin: 4px 0 16px; }
+  .selection-main {
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    background: #fff; color: #e5352b; border: 2px solid #e5352b;
+    padding: 12px 38px; border-radius: 999px; transition: all .18s;
+    box-shadow: 0 4px 14px rgba(229,53,43,.15);
+  }
+  .selection-main:hover { background: var(--accent-soft); transform: translateY(-1px); }
+  .selection-main.on { background: #e5352b; color: #fff; border-color: #e5352b; box-shadow: 0 6px 18px rgba(229,53,43,.3); }
+  .selection-tip {
+    position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+    width: 340px; background: #fffdf7; border: 1px solid #e8dfcf; border-radius: 14px;
+    padding: 14px 16px; box-shadow: 0 14px 40px rgba(120,60,20,.18);
+    display: none; z-index: 60; text-align: left;
+  }
+  .selection-tip.show { display: block; animation: fade .15s ease; }
+  .selection-tip b { color: #e5352b; font-size: 14px; }
+  .selection-tip p { font-size: 12.5px; color: #4a4338; line-height: 1.7; margin: 5px 0 0; }
+  .selection-tip p b { color: #1d1d1f; font-size: 12.5px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
   .dir-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -193,10 +210,21 @@
     </div>
     <div class="badges">
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
-      <button class="badge toggle-btn" id="selectionBtn" title="开启后，划词+Cmd/Ctrl+C 才会弹翻译">开启一键划词</button>
       <span class="badge" id="dictBadge">加载词典…</span>
     </div>
   </header>
+
+  <div class="selection-panel">
+    <button class="selection-main" id="selectionBtn">开启一键划词</button>
+    <div class="selection-tip" id="selectionTip">
+      <b>划词翻译 · 使用方法</b>
+      <p>1️⃣ 点击上方按钮<b>开启</b>（开启后一直有效）</p>
+      <p>2️⃣ 选中电脑上<b>任何应用</b>里的文字</p>
+      <p>3️⃣ 按 <b>Cmd+C / Ctrl+C</b>，翻译弹窗立即出现在鼠标旁</p>
+      <p>4️⃣ 关闭弹窗：点弹窗上的「<b>✕</b>」</p>
+      <p>5️⃣ 调整弹窗外观：菜单栏「译」图标 → 设置…</p>
+    </div>
+  </div>
 
   <div class="dir-bar" id="dirBar">
     <button class="dir-btn active" data-dir="auto">自动检测</button>
@@ -449,9 +477,10 @@ $('#history').addEventListener('click', (e) => {
   if (item) { input.value = item.dataset.q; doTranslate(); }
 });
 
-// 一键划词开关
+// 一键划词开关（大按钮 + 悬停使用方法）
 (async function initSelectionMode() {
   const btn = $('#selectionBtn');
+  const tip = $('#selectionTip');
   try {
     const r = await fetch('/api/selection-mode');
     const j = await r.json();
@@ -470,9 +499,18 @@ $('#history').addEventListener('click', (e) => {
   });
   function applyMode(on) {
     btn.classList.toggle('on', on);
-    btn.textContent = on ? '划词已开启' : '开启一键划词';
-    btn.title = on ? '划词功能已开启（划词 + Cmd/Ctrl+C 即弹翻译）' : '开启后，划词 + Cmd/Ctrl+C 才会弹翻译';
+    btn.textContent = on ? '✅ 划词已开启' : '开启一键划词';
   }
+  // 悬停展示使用方法
+  let tipTimer = null;
+  const showTip = () => { clearTimeout(tipTimer); tip.classList.add('show'); };
+  const hideTip = () => { tipTimer = setTimeout(() => tip.classList.remove('show'), 250); };
+  btn.addEventListener('mouseenter', showTip);
+  btn.addEventListener('mouseleave', hideTip);
+  tip.addEventListener('mouseenter', showTip);
+  tip.addEventListener('mouseleave', hideTip);
+  btn.addEventListener('focus', showTip);
+  btn.addEventListener('blur', hideTip);
 })();
 
 // 首次访问显示使用说明
