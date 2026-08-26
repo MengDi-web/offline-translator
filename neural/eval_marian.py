@@ -24,7 +24,9 @@ def main():
     model_name = 'opus-mt-zh-en' if args.orientation == 'zh2en' else 'opus-mt-en-zh'
     model_dir = os.path.join(ROOT, 'neural', 'models', model_name)
     if not os.path.exists(model_dir):
-        model_dir = f'/mnt/home/mengd/nmt-train/neural/models/{model_name}'
+        model_dir = os.environ.get('FT_MODEL_DIR', '') or model_dir
+        if not os.path.exists(model_dir):
+            raise SystemExit(f'未找到模型目录: {model_dir}（可用环境变量 FT_MODEL_DIR 指定路径）')
     tok = MarianTokenizer.from_pretrained(model_dir)
     model = MarianMTModel.from_pretrained(model_dir)
     if args.ckpt:
