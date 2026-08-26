@@ -24,13 +24,24 @@ if [ ! -x "划词助手" ]; then
     -module-cache-path /tmp/swift-module-cache 划词助手.swift -o 划词助手
 fi
 
-echo "== 3/4 打包 Python 库（PYTHONPATH 方式，可搬移）=="
+echo "== 3/4 准备可搬移 Python（python-build-standalone）=="
+PY_DIR="/tmp/pyportable/python"
+if [ ! -x "$PY_DIR/bin/python3.12" ]; then
+  mkdir -p /tmp/pyportable
+  cd /tmp/pyportable
+  PY_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20260825/cpython-3.12.14%2B20260825-aarch64-apple-darwin-install_only.tar.gz"
+  echo "  下载便携 Python（镜像优先）..."
+  curl -sL --max-time 300 -o py.tar.gz "https://ghfast.top/$PY_URL" \
+    || curl -sL --max-time 600 -o py.tar.gz "$PY_URL"
+  tar xzf py.tar.gz
+  cd "$ROOT"
+fi
+
+echo "== 4/4 打包 Python 库 + 组装 .app =="
 rm -rf /tmp/python-libs
 mkdir -p /tmp/python-libs
 rsync -a --exclude '__pycache__' --exclude '*.pyc' --exclude 'tests' --exclude 'pyinstaller*' \
   "$PYLIB_SRC/" /tmp/python-libs/
-
-echo "== 4/4 组装 .app =="
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp tools/dist/Info.plist "$APP/Contents/Info.plist"
@@ -38,6 +49,7 @@ cp tools/dist/launcher "$APP/Contents/MacOS/launcher"
 chmod +x "$APP/Contents/MacOS/launcher"
 cp "$NODE_DIR/bin/node" "$APP/Contents/MacOS/node"
 cp 划词助手 "$APP/Contents/MacOS/划词助手"
+rsync -a "$PY_DIR/" "$APP/Contents/Resources/python/"          # 可搬移 Python 解释器
 rsync -a /tmp/python-libs/ "$APP/Contents/Resources/python-libs/"
 rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' --exclude '划词助手.app' \
   --exclude '*.command' --exclude '发布指南.md' --exclude 'windows' --exclude '翻译数据库' \
@@ -47,4 +59,4 @@ rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' --exclude '划词�
 codesign --force --sign - "$APP" 2>/dev/null
 echo ""
 echo "✅ 完成: $(du -sh "$APP" | cut -f1)  $APP"
-echo "   双击即可运行（自动启动服务+划词助手+打开网页）"
+echo "   完全自包含（内置 Node + Python + 模型），双击即用，无需安装任何东西"
