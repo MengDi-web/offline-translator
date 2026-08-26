@@ -192,7 +192,6 @@
   .hist-item:hover { border-color: var(--accent); }
   .hist-q { font-size: 13px; color: var(--muted); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hist-r { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hist-time { font-size: 11px; color: var(--muted); flex: none; }
 
   footer { text-align: center; color: var(--muted); font-size: 11px; padding: 20px; line-height: 1.8; }
   footer a { color: var(--muted); }
@@ -301,7 +300,6 @@ function renderHistory() {
     `<div class="hist-item" data-q="${escapeAttr(x.q)}" data-i="${i}">
        <span class="hist-q">${esc(x.q)}</span>
        <span class="hist-r">${esc(x.r)}</span>
-       <span class="hist-time">${new Date(x.t).toLocaleTimeString()}</span>
        <button class="hist-del" title="删除" data-i="${i}">✕</button>
      </div>`).join('');
 }
