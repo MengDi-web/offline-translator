@@ -1,4 +1,4 @@
-# xuanci_helper.ps1 — Windows 划词翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿# xuanci_helper.ps1 — Windows 划词翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -74,8 +74,10 @@ function Test-Garbled($text) {
 # ---------- 翻译请求 ----------
 function Request-Translation($text) {
     $body = @{ selection = $text; context = '' } | ConvertTo-Json -Compress
+    # PowerShell 5.1 的字符串 Body 默认按 ASCII 编码，中文会乱码 → 必须转 UTF-8 字节
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
     try {
-        $resp = Invoke-RestMethod -Uri $SERVER -Method Post -Body $body -ContentType 'application/json; charset=utf-8' -TimeoutSec 60
+        $resp = Invoke-RestMethod -Uri $SERVER -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8' -TimeoutSec 60
         return $resp
     } catch {
         return $null
@@ -205,22 +207,19 @@ function Show-Popup($resp) {
     $f.BringToFront()
 }
 
-# ---------- 剪贴板监听（STA 必需） ----------
+# ---------- 剪贴板监听（STA 必需；用 add_Tick 同 runspace 处理，避免跨会话作用域问题） ----------
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 250
-$lastChange = [System.Windows.Forms.Clipboard]::GetDataObject().GetType() # 哨兵
-$lastText = ''
-Register-ObjectEvent $timer Elapsed -Action {
+$timer.add_Tick({
     try {
         if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
         $t = [System.Windows.Forms.Clipboard]::GetText()
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
-        if ($t -eq $lastText -and ($now - $lastCopyTime).TotalSeconds -lt 2) { return }
+        if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
         if (Test-Garbled $t) {
-            $resp = @{ error = '⚠ 复制内容疑似乱码（可能来自应用的复制保护），无法翻译' }
-            Show-Popup $resp
-            $lastText = $t; $lastCopyTime = $now
+            Show-Popup @{ error = '⚠ 复制内容疑似乱码（可能来自应用的复制保护），无法翻译' }
+            $script:lastText = $t; $script:lastCopyTime = $now
             return
         }
         $resp = Request-Translation $t
@@ -229,9 +228,11 @@ Register-ObjectEvent $timer Elapsed -Action {
         } else {
             Show-Popup @{ error = '翻译服务未运行，请先启动: node server.js' }
         }
-        $lastText = $t; $lastCopyTime = $now
+        $script:lastText = $t; $script:lastCopyTime = $now
     } catch {}
-} | Out-Null
+})
+$script:lastText = ''
+$script:lastCopyTime = [DateTime]::MinValue
 $timer.Start()
 
 # ---------- 设置窗口 ----------

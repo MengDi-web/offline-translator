@@ -33,8 +33,8 @@ function sh(cmd, timeout = 600000) {
 
 function httpOk(url, maxTime = 10) {
   try {
-    execFileSync('curl', ['-sL', '--max-time', String(maxTime), '-o', '/dev/null', '-w', '%{http_code}', url], { stdio: 'pipe' });
-    return true;
+    const code = execFileSync('curl', ['-sL', '--max-time', String(maxTime), '-o', '/dev/null', '-w', '%{http_code}', url], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    return code.startsWith('2');   // 只有 2xx 才算可用（404 不能当成功）
   } catch { return false; }
 }
 
