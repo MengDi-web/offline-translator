@@ -1,4 +1,4 @@
-﻿# xuanci_helper.ps1 — Windows 划词翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿# xuanci_helper.ps1 — Windows 划词翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -86,6 +86,7 @@ function Request-Translation($text) {
 
 # ---------- 弹窗 ----------
 $popupForm = $null
+$script:dragState = @{ dragging = $false; dx = 0; dy = 0 }
 $lastCopyText = ''
 $lastCopyTime = [DateTime]::MinValue
 
@@ -162,6 +163,29 @@ function Show-Popup($resp) {
         }
     })
     $closeBtn.Add_Click({ $f.Close() })
+
+    # 拖拽移动：按住窗体/标题/正文拖动（按钮除外，保持可点击）
+    $dragTargets = @($f, $title, $bodyLbl)
+    foreach ($ctrl in $dragTargets) {
+        $ctrl.Add_MouseDown({
+            param($s, $e)
+            if ($e.Button -eq 'Left') {
+                $script:dragState.dragging = $true
+                $script:dragState.dx = $e.X
+                $script:dragState.dy = $e.Y
+            }
+        })
+        $ctrl.Add_MouseMove({
+            param($s, $e)
+            if ($script:dragState.dragging -and $script:popupForm) {
+                $f2 = $script:popupForm
+                $f2.Location = New-Object System.Drawing.Point(
+                    ($f2.Location.X + $e.X - $script:dragState.dx),
+                    ($f2.Location.Y + $e.Y - $script:dragState.dy))
+            }
+        })
+        $ctrl.Add_MouseUp({ $script:dragState.dragging = $false })
+    }
 
     $f.Controls.Add($title)
     $f.Controls.Add($bodyLbl)

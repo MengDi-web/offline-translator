@@ -176,10 +176,15 @@ func requestTranslation(selection: String, context: String, bounds: CGRect?) -> 
     return result
 }
 
-// MARK: - 浮动窗（带复制按钮，应用设置）
+// MARK: - 浮动窗（带复制按钮，应用设置；可拖拽移动）
+// 文本区允许拖拽窗口（mouseDownCanMoveWindow = true），按钮仍可点击
+final class DragTextView: NSTextView {
+    override var mouseDownCanMoveWindow: Bool { true }
+}
+
 final class PopupPanel: NSPanel {
     let scroll = NSScrollView()
-    let textView = NSTextView()
+    let textView = DragTextView()
     let copyBtn = NSButton()
     let closeBtn = NSButton()
     var copyText = ""
@@ -190,6 +195,7 @@ final class PopupPanel: NSPanel {
                    backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear   // 窗口本身透明，背景画在内容层上（圆角才可见）
+        isMovableByWindowBackground = true   // 按住弹窗任意空白/文本处可拖动
         level = .floating
         hasShadow = true
         isReleasedWhenClosed = false
