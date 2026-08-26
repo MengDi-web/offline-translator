@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -10,6 +10,11 @@
 #       设置: 弹窗宽度/划词字号/翻译字号/背景色/背景透明度/复制键色/关闭键色/圆角
 
 param([switch]$Debug)
+
+# 单实例互斥锁: 防止重复启动导致双弹窗/循环翻译
+$singletonMutex = New-Object System.Threading.Mutex($false, 'MiaomiaoXuanciHelper')
+if (-not $singletonMutex.WaitOne(0)) { exit }
+
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
