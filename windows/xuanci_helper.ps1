@@ -1,4 +1,4 @@
-﻿﻿# xuanci_helper.ps1 — Windows 划词翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -262,7 +262,7 @@ $timer.Start()
 # ---------- 设置窗口 ----------
 function Show-Settings {
     $sf = New-Object System.Windows.Forms.Form
-    $sf.Text = '划词助手 · 设置'
+    $sf.Text = 'miaomiao翻译器 · 设置'
     $sf.FormBorderStyle = 'FixedDialog'
     $sf.StartPosition = 'CenterScreen'
     $sf.ClientSize = New-Object System.Drawing.Size(360, 340)
@@ -325,7 +325,7 @@ function Show-Settings {
 # ---------- 托盘图标 ----------
 $notify = New-Object System.Windows.Forms.NotifyIcon
 $notify.Icon = [System.Drawing.SystemIcons]::Information
-$notify.Text = '划词翻译助手'
+$notify.Text = 'miaomiao翻译助手'
 $notify.Visible = $true
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $itemSettings = $menu.Items.Add('设置…')
@@ -334,7 +334,7 @@ $notify.ContextMenuStrip = $menu
 $itemSettings.Add_Click({ Show-Settings })
 $itemExit.Add_Click({ $timer.Stop(); $notify.Visible = $false; [System.Windows.Forms.Application]::Exit() })
 
-Write-Host '划词助手已启动 —— 选中文字后按 Ctrl+C（复制）即弹窗翻译'
+Write-Host 'miaomiao翻译助手已启动 —— 选中文字后按 Ctrl+C（复制）即弹窗翻译'
 Write-Host '右键托盘图标可设置/退出'
 
 # 保持消息循环

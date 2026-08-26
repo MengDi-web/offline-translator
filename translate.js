@@ -107,7 +107,7 @@ if (queryArgs.length) {
 } else {
   // 交互模式
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  console.log('离线翻译器（输入内容回车翻译，Ctrl+C 退出，支持中英互译）');
+  console.log('miaomiao翻译器（输入内容回车翻译，Ctrl+C 退出，支持中英互译）');
   rl.setPrompt('> ');
   rl.prompt();
   rl.on('line', (line) => {

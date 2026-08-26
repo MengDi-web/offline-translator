@@ -3,7 +3,7 @@ chcp 65001 >nul
 cd /d "%~dp0.."
 
 echo ============================================
-echo   本地离线翻译器 (Windows 版)
+echo   miaomiao翻译器 (Windows 版)
 echo ============================================
 
 where node >nul 2>&1

@@ -1,7 +1,7 @@
 {
-  "name": "offline-translator",
+  "name": "miaomiao-translator",
   "version": "1.0.0",
-  "description": "本地离线中英互译器：零依赖、无需联网，内置 ECDICT + CC-CEDICT 开源词典数据",
+  "description": "miaomiao翻译器：完全离线中英互译（神经+词典双引擎），内置 ECDICT + CC-CEDICT 开源词典数据",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

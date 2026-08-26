@@ -362,7 +362,7 @@ final class SettingsPanel: NSPanel {
                    backing: .buffered, defer: false)
         isReleasedWhenClosed = false
         hidesOnDeactivate = false
-        title = "划词助手 · 设置"
+        title = "miaomiao翻译器 · 设置"
         // 层级必须高于翻译弹窗（弹窗不自动消失，同级会挡住设置）
         level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
 
@@ -791,7 +791,7 @@ let controller = AppController()
 // 菜单栏图标（设置按钮）
 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 if let btn = statusItem.button {
-    btn.title = "译"
+    btn.title = "喵"
     btn.font = NSFont.systemFont(ofSize: 13, weight: .bold)
 }
 let menu = NSMenu()

@@ -1,5 +1,5 @@
 #!/bin/bash
-# 启动本地离线翻译器（macOS 双击运行）
+# 启动miaomiao翻译器（macOS 双击运行）
 cd "$(dirname "$0")"
 PORT=6688
 

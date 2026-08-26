@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * server.js — 本地离线翻译器（零依赖 HTTP 服务）。
+ * server.js — miaomiao翻译器（零依赖 HTTP 服务）。
  *
  * 启动:  node server.js [--port 6688]
  * 访问:  http://127.0.0.1:6688
@@ -246,7 +246,7 @@ startNmt();
 server.listen(port, '127.0.0.1', () => {
   console.log('');
   console.log('  ┌──────────────────────────────────────────────┐');
-  console.log('  │  本地离线翻译器  (中英互译 · 完全离线)        │');
+  console.log('  │  miaomiao翻译器  (中英互译 · 完全离线)        │');
   console.log(`  │  http://127.0.0.1:${port}                       │`);
   console.log('  │  词典 + 神经翻译双引擎                        │');
   console.log('  │  按 Ctrl+C 停止                                │');
