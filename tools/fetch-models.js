@@ -38,22 +38,22 @@ function httpOk(url, maxTime = 10) {
   } catch { return false; }
 }
 
-function downloadFromRelease(dir, binName) {
+function downloadSmallFromHF(outDir, hfRepo) {
+  fs.mkdirSync(outDir, { recursive: true });
+  for (const f of SMALL_FILES) {
+    sh(`curl -sL --retry 3 -o "${outDir}/${f}" "https://hf-mirror.com/${hfRepo}/resolve/main/${f}"`);
+  }
+}
+
+function downloadFromRelease(dir, info) {
   const outDir = path.join(MODELS, dir);
   fs.mkdirSync(outDir, { recursive: true });
-  let ok = true;
-  for (const f of SMALL_FILES) {
-    const url = `${RELEASE}/${dir}-${f}`;
-    if (!httpOk(url)) { ok = false; break; }
-    sh(`curl -sL --retry 3 -o "${outDir}/${f}" "${url}"`);
-  }
-  if (ok) {
-    const url = `${RELEASE}/${binName}`;
-    if (httpOk(url)) {
-      sh(`curl -sL --retry 3 -o "${path.join(outDir, 'pytorch_model.bin')}" "${url}"`);
-      console.log(`✅ ${dir} 已从 Release 下载`);
-      return true;
-    }
+  downloadSmallFromHF(outDir, info.hf);   // 小文件与预训练一致，统一从 hf-mirror
+  const url = `${RELEASE}/${info.bin}`;
+  if (httpOk(url)) {
+    sh(`curl -sL --retry 3 -o "${path.join(outDir, 'pytorch_model.bin')}" "${url}"`);
+    console.log(`✅ ${dir} 已从 Release 下载微调权重`);
+    return true;
   }
   return false;
 }
@@ -91,7 +91,7 @@ function main() {
       console.log(`[跳过] ${dir} 已存在`);
       continue;
     }
-    if (!downloadFromRelease(dir, info.bin)) {
+    if (!downloadFromRelease(dir, info)) {
       console.log(`[回退] Release 不可用，改用 hf-mirror 预训练 ${info.hf}`);
       downloadFromHFAndConvert(dir, info.hf);
     }
