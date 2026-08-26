@@ -51,16 +51,16 @@ enum Settings {
     static let radiusKey = "popupRadius"
 
     static var width: CGFloat { CGFloat(UserDefaults.standard.double(forKey: widthKey) != 0 ? UserDefaults.standard.double(forKey: widthKey) : 380) }
-    static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 15) }
-    static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 14) }
-    static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.95 }
+    static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 14) }
+    static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 16) }
+    static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.65 }
     // 默认苹果配色（与网页一致）：米黄奶油底 + 苹果红
-    static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0xFBF6EC) }
-    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFF3B30) }
-    static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0xA89E8B) }
-    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0x1D1D1F) }
-    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xE5352B) }
-    static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 12) }
+    static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0x000000) }
+    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFBF6EC) }
+    static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0xFFFFFF) }
+    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFF3B30) }
+    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xFBF6EC) }
+    static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 20) }
 
     static func save(width: CGFloat, radius: CGFloat, origFontSize: CGFloat, transFontSize: CGFloat, opacity: CGFloat,
                      bgColor: NSColor, copyColor: NSColor, closeColor: NSColor,
@@ -311,13 +311,13 @@ final class PopupPanel: NSPanel {
         contentView?.layer?.cornerRadius = Settings.radius
         styleButtons()
 
-        let maxW = Settings.width
-        let pad: CGFloat = 40
-        let measured = size(for: attr, maxWidth: maxW - pad)
-        let w = min(560, max(240, measured.width + pad))
+        let w = Settings.width                        // 窗口宽度 = 设置值（修复滑杆无效果）
+        let pad: CGFloat = 28
+        let textW = w - pad
+        let measured = size(for: attr, maxWidth: textW)
         let textH = min(360, max(40, measured.height + pad))
         let h = textH + 34
-        textView.frame = NSRect(x: 0, y: 0, width: w - 6, height: textH)
+        textView.frame = NSRect(x: 0, y: 0, width: textW, height: textH)
 
         let screens = NSScreen.screens
         let screen = screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? screens.first
@@ -530,9 +530,9 @@ final class SettingsPanel: NSPanel {
     }
     @objc func resetTapped() {
         Settings.reset()
-        widthSlider.doubleValue = 380; radiusSlider.doubleValue = 12
-        origFontSlider.doubleValue = 15; transFontSlider.doubleValue = 14
-        opacitySlider.doubleValue = 0.95
+        widthSlider.doubleValue = 380; radiusSlider.doubleValue = 20
+        origFontSlider.doubleValue = 14; transFontSlider.doubleValue = 16
+        opacitySlider.doubleValue = 0.65
         origColorWell.color = Settings.origColor; transColorWell.color = Settings.transColor
         bgWell.color = Settings.bgColor; copyWell.color = Settings.copyColor; closeWell.color = Settings.closeColor
         refreshLabels()

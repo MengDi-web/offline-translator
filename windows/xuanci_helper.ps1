@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -22,15 +22,15 @@ $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 # ---------- 默认配置 ----------
 $DEFAULTS = @{
     width = 380
-    origFontSize = 15
-    transFontSize = 14
-    opacity = 0.98
-    radius = 12
-    bgColor = '#FBF6EC'    # 苹果米黄
-    copyColor = '#FF3B30'  # 苹果红
-    closeColor = '#A89E8B'
-    origColor = '#1D1D1F'
-    transColor = '#E5352B'
+    origFontSize = 14
+    transFontSize = 16
+    opacity = 0.65
+    radius = 20
+    bgColor = '#000000'    # 黑底
+    copyColor = '#FBF6EC'  # 米黄按键
+    closeColor = '#FFFFFF' # 白关闭键
+    origColor = '#FF3B30'  # 苹果红原文字
+    transColor = '#FBF6EC' # 米黄译文
 }
 
 function Load-Config {
@@ -63,12 +63,15 @@ function ToHexColor($c) {
 
 # ---------- PDF 断行归一化 ----------
 function Normalize-Wrapped($text) {
-    $parts = $text -split "?
-?
+    $parts = $text -split "
+?
+
+?
 +"
     $out = @()
     foreach ($p in $parts) {
-        $lines = $p -split "?
+        $lines = $p -split "
+?
 "
         if ($lines.Count -le 1) { $out += $p; continue }
         $sb = $lines[0]
