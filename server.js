@@ -114,6 +114,34 @@ function nmtRequest(text, dir, timeoutMs = 60000) {
   });
 }
 
+/** 神经输出清洗：截断退化循环（同一字符连续重复 8+ 次）。
+ *  Marian 模型对代码/符号密集输入会陷入循环输出（如连续反斜杠），在此截断。 */
+function sanitizeNmtOutput(text) {
+  if (!text) return '';
+  const s = String(text);
+  const m = s.match(/(.)\1{7,}/);
+  if (m) return s.slice(0, m.index).trim();
+  return s.trim();
+}
+
+/** 代码/标记片段占位保护：翻译前把反引号代码、URL、<...> 换成 CODE0/CODE1…
+ *  翻译后再还原，避免模型对符号密集片段输出退化乱码。 */
+function safeNmtTranslate(text, dir) {
+  const segs = [];
+  const protectedText = String(text).replace(/`[^`]*`|https?:\/\/\S+|<\S+>/g, (m) => {
+    segs.push(m);
+    return 'CODE' + (segs.length - 1);
+  });
+  return nmtRequest(protectedText, dir).then((r) => {
+    if (r.error) return r;
+    let out = sanitizeNmtOutput(r.text);
+    if (segs.length) {
+      out = out.replace(/CODE(\d+)/g, (_, i) => (segs[+i] !== undefined ? segs[+i] : ''));
+    }
+    return { text: out };
+  });
+}
+
 /** 判断是否为整句（应走神经翻译） */
 function isSentence(input, dir) {
   const s = String(input).trim();
@@ -170,6 +198,8 @@ const server = http.createServer(async (req, res) => {
       const mode = u.searchParams.get('mode') || 'auto';
       if (!q) return sendJson(res, 400, { error: '缺少参数 q' });
       const t0 = Date.now();
+      let degraded = false;
+      let resultNote = '';
 
       // 解析方向（词典引擎内部逻辑）
       const d = translate.detectLang(q);
@@ -184,8 +214,8 @@ const server = http.createServer(async (req, res) => {
       else useNmt = false;
 
       if (useNmt && (effDir === 'zh2en' || effDir === 'en2zh')) {
-        const nr = await nmtRequest(q, effDir);
-        if (!nr.error) {
+        const nr = await safeNmtTranslate(q, effDir);
+        if (!nr.error && (nr.text || '').length >= 2) {
           const result = {
             engine: 'nmt', dir: effDir, detected: d, kind: 'sentence', input: q,
             translation: nr.text,
@@ -195,10 +225,14 @@ const server = http.createServer(async (req, res) => {
           };
           return sendJson(res, 200, result);
         }
-        // 神经后端失败 → 降级词典
+        // 神经后端失败，或模型输出异常（退化乱码、为空）→ 降级词典并说明
+        if (nr.error) resultNote = '神经后端暂不可用，已降级词典直译';
+        else resultNote = '含代码/特殊符号，模型输出异常，已回退词典直译';
+        degraded = true;
       }
       const result = dictResult;
       result.engine = 'dict';
+      result.note = degraded ? resultNote : (result.note || undefined);
       result.ms = Date.now() - t0;
       return sendJson(res, 200, result);
     }
@@ -219,7 +253,7 @@ const server = http.createServer(async (req, res) => {
       }
       const body = JSON.parse((await readBody(req)) || '{}');
       const t0 = Date.now();
-      const result = await context.contextTranslate(body, (text, dir) => nmtRequest(text, dir).then((r) => {
+      const result = await context.contextTranslate(body, (text, dir) => safeNmtTranslate(text, dir).then((r) => {
         if (r.error) throw new Error(r.error);
         return r.text;
       }));
