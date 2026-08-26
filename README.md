@@ -26,7 +26,7 @@ node server.js        # 网页界面 → http://127.0.0.1:6688
 ```
 
 **macOS 划词**：双击 `划词翻译.command`（自动起服务 + 后台常驻启动助手，**可完全关闭终端**；助手发现服务未运行会自动拉起，无需再开终端；菜单栏「译」图标可设置/退出）。
-**Windows 划词**：双击 `windows\start_translator.bat`（详见 [windows/安装说明.md](windows/安装说明.md)）。
+**Windows 划词**：双击 `windows\启动翻译器.bat`（详见 [windows/安装说明.md](windows/安装说明.md)）。
 
 ## 划词翻译（双平台）
 

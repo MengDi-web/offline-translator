@@ -1,64 +1,64 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 cd /d "%~dp0.."
 echo ==============================================
-echo   miaomiaoç¿»è¯‘å™¨ Â· ä¸€é”®éƒ¨ç½²ï¼ˆåªéœ€è¿è¡Œä¸€æ¬¡ï¼‰
-echo   â€”â€” è‡ªåŠ¨å‡†å¤‡ Nodeã€Pythonã€æ¨¡å‹ï¼Œä¹‹åå…æ“ä½œ
+echo   miaomiao·­ÒëÆ÷ ¡¤ Ò»¼ü²¿Êğ£¨Ö»ĞèÔËĞĞÒ»´Î£©
+echo   ¡ª¡ª ×Ô¶¯×¼±¸ Node¡¢Python¡¢Ä£ĞÍ£¬Ö®ºóÃâ²Ù×÷
 echo ==============================================
 echo.
 
-REM ---------- 1. ä¾¿æºç‰ˆ Node ----------
+REM ---------- 1. ±ãĞ¯°æ Node ----------
 if not exist "runtime\node\node.exe" (
-    echo [1/4] ä¸‹è½½ä¾¿æºç‰ˆ Node.js ...
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile \"$env:TEMP\miaomiao-node.zip\"; Expand-Archive \"$env:TEMP\miaomiao-node.zip\" -DestinationPath 'runtime' -Force; if (Test-Path 'runtime\node-v22.14.0-win-x64') { Move-Item 'runtime\node-v22.14.0-win-x64' 'runtime\node' -Force }"
+    echo [1/4] ÏÂÔØ±ãĞ¯°æ Node.js ...
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip' -OutFile '%TEMP%\miaomiao-node.zip'; Expand-Archive '%TEMP%\miaomiao-node.zip' -DestinationPath 'runtime' -Force; if (Test-Path 'runtime\node-v22.14.0-win-x64') { Move-Item 'runtime\node-v22.14.0-win-x64' 'runtime\node' -Force }"
 ) else (
-    echo [1/4] Node å·²å°±ç»ª
+    echo [1/4] Node ÒÑ¾ÍĞ÷
 )
 set "PATH=%CD%\runtime\node;%PATH%"
 
-REM ---------- 2. Pythonï¼ˆæœªå®‰è£…åˆ™é™é»˜å®‰è£…ï¼‰ ----------
+REM ---------- 2. Python£¨Î´°²×°Ôò¾²Ä¬°²×°£© ----------
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [2/4] æœªæ£€æµ‹åˆ° Pythonï¼Œæ­£åœ¨ä¸‹è½½å¹¶é™é»˜å®‰è£…ï¼ˆçº¦ 3 åˆ†é’Ÿï¼Œæ— éœ€æ“ä½œï¼‰...
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe' -OutFile \"$env:TEMP\miaomiao-python.exe\""
+    echo [2/4] Î´¼ì²âµ½ Python£¬ÕıÔÚÏÂÔØ²¢¾²Ä¬°²×°£¨Ô¼ 3 ·ÖÖÓ£¬ÎŞĞè²Ù×÷£©...
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe' -OutFile '%TEMP%\miaomiao-python.exe'"
     "%TEMP%\miaomiao-python.exe" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_doc=0
-    rem åˆ·æ–° PATH
+    rem Ë¢ĞÂ PATH
     set "PATH=%LocalAppData%\Programs\Python\Python312;%LocalAppData%\Programs\Python\Python312\Scripts;%PATH%"
 ) else (
-    echo [2/4] Python å·²å°±ç»ª
+    echo [2/4] Python ÒÑ¾ÍĞ÷
 )
 
-REM ---------- 3. Python ç¯å¢ƒ + ç¥ç»ä¾èµ– ----------
+REM ---------- 3. Python »·¾³ + Éñ¾­ÒÀÀµ ----------
 if not exist "neural\.venv\Scripts\python.exe" (
-    echo [3/4] åˆ›å»ºç¿»è¯‘ç¯å¢ƒå¹¶å®‰è£…ä¾èµ–ï¼ˆé¦–æ¬¡çº¦ 5-10 åˆ†é’Ÿï¼Œè¯·è€å¿ƒç­‰å¾…ï¼‰...
+    echo [3/4] ´´½¨·­Òë»·¾³²¢°²×°ÒÀÀµ£¨Ê×´ÎÔ¼ 5-10 ·ÖÖÓ£¬ÇëÄÍĞÄµÈ´ı£©...
     python -m venv neural\.venv
     neural\.venv\Scripts\python -m pip install --upgrade pip -q
     neural\.venv\Scripts\pip install -q torch --index-url https://download.pytorch.org/whl/cpu
     neural\.venv\Scripts\pip install -q transformers sentencepiece sacrebleu numpy
 ) else (
-    echo [3/4] ç¿»è¯‘ç¯å¢ƒå·²å°±ç»ª
+    echo [3/4] ·­Òë»·¾³ÒÑ¾ÍĞ÷
 )
 
-REM ---------- 4. ç¿»è¯‘æ¨¡å‹ ----------
+REM ---------- 4. ·­ÒëÄ£ĞÍ ----------
 if not exist "neural\models\opus-mt-zh-en-ft\pytorch_model.bin" (
-    echo [4/4] ä¸‹è½½ç¿»è¯‘æ¨¡å‹ï¼ˆçº¦ 300MBï¼Œè§†ç½‘é€Ÿ 1-5 åˆ†é’Ÿï¼‰...
+    echo [4/4] ÏÂÔØ·­ÒëÄ£ĞÍ£¨Ô¼ 300MB£¬ÊÓÍøËÙ 1-5 ·ÖÖÓ£©...
     node tools\fetch-models.js
 ) else (
-    echo [4/4] æ¨¡å‹å·²å°±ç»ª
+    echo [4/4] Ä£ĞÍÒÑ¾ÍĞ÷
 )
 
-REM ---------- 5. è¯å…¸æ•°æ® ----------
+REM ---------- 5. ´ÊµäÊı¾İ ----------
 if not exist "data\common.json" (
-    echo [5/5] ç”Ÿæˆè¯å…¸æ•°æ® ...
+    echo [5/5] Éú³É´ÊµäÊı¾İ ...
     node tools\fetch-data.js
     node tools\build-index.js
 ) else (
-    echo [5/5] è¯å…¸å·²å°±ç»ª
+    echo [5/5] ´ÊµäÒÑ¾ÍĞ÷
 )
 
 echo.
 echo ==============================================
-echo   éƒ¨ç½²å®Œæˆï¼ä»¥ååªéœ€åŒå‡» å¯åŠ¨ç¿»è¯‘å™¨.bat
-echo   ï¼ˆåˆ’è¯ï¼šé€‰ä¸­æ–‡å­— â†’ Ctrl+Cï¼‰
+echo   ²¿ÊğÍê³É£¡ÒÔºóÖ»ĞèË«»÷ Æô¶¯·­ÒëÆ÷.bat
+echo   £¨»®´Ê£ºÑ¡ÖĞÎÄ×Ö ¡ú Ctrl+C£©
 echo ==============================================
 pause
