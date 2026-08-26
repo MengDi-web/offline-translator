@@ -54,11 +54,12 @@ enum Settings {
     static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 15) }
     static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 14) }
     static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.95 }
-    static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0x1A1A1A) }
-    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0x2D7DFF) }
-    static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0x555555) }
-    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFFFFFF) }
-    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0x6EE7B7) }
+    // 默认苹果配色（与网页一致）：米黄奶油底 + 苹果红
+    static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0xFBF6EC) }
+    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFF3B30) }
+    static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0xA89E8B) }
+    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0x1D1D1F) }
+    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xE5352B) }
     static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 12) }
 
     static func save(width: CGFloat, radius: CGFloat, origFontSize: CGFloat, transFontSize: CGFloat, opacity: CGFloat,
@@ -567,9 +568,9 @@ func buildAttributed(_ resp: [String: Any]) -> (attr: NSAttributedString, copy: 
     let body = NSFont.systemFont(ofSize: tfs)
     let small = NSFont.systemFont(ofSize: max(10, tfs - 2))
     let white = Settings.origColor
-    let gray = attrColor(0xB8BEC9)
+    let gray = attrColor(0x8A8272)
     let accent = Settings.transColor
-    let orange = attrColor(0xFBBF24)
+    let orange = attrColor(0xB2501E)
 
     func add(_ s: String, font: NSFont, color: NSColor) {
         out.append(NSAttributedString(string: s, attributes: [.font: font, .foregroundColor: color]))
@@ -638,6 +639,35 @@ func buildAttributed(_ resp: [String: Any]) -> (attr: NSAttributedString, copy: 
 }
 
 // 通用垃圾识别：复制保护通常输出单一符号反复重复（花括号/波浪线/等号…）
+// PDF 等来源的换行归一化：句子中间的换行合并（中文直接去掉换行，英文补空格），空行(段落)保留
+func normalizeWrappedText(_ text: String) -> String {
+    let paragraphs = text.components(separatedBy: "\n\n")
+    let sentEnders = CharacterSet(charactersIn: "。！？!?；;”\"…")
+    return paragraphs.map { p -> String in
+        let lines = p.components(separatedBy: "\n")
+        guard lines.count > 1 else { return p }
+        var out = lines[0]
+        for i in 1..<lines.count {
+            let prevLast = lines[i - 1].last
+            let curFirst = lines[i].first
+            let prevEndsSentence = prevLast.map { String($0).rangeOfCharacter(from: sentEnders) != nil } ?? true
+            if prevEndsSentence {
+                out += "\n"
+            } else {
+                let cjkPrev = prevLast.map { String($0).range(of: #"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]"#, options: .regularExpression) != nil } ?? false
+                let cjkCur = curFirst.map { String($0).range(of: #"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]"#, options: .regularExpression) != nil } ?? false
+                if cjkPrev && cjkCur {
+                    // 中文断行：直接合并
+                } else {
+                    out += " "
+                }
+            }
+            out += lines[i]
+        }
+        return out
+    }.joined(separator: "\n\n")
+}
+
 func looksGarbled(_ text: String) -> Bool {
     let t = String(text)
     if t.count < 4 { return false }
@@ -728,7 +758,8 @@ func startMonitor() {
             let cc = pb.changeCount
             if cc == monLastChange { continue }
             monLastChange = cc
-            guard let text = pb.string(forType: .string), !text.isEmpty, text.count <= 3000 else { continue }
+            guard let raw = pb.string(forType: .string), !raw.isEmpty, raw.count <= 3000 else { continue }
+            let text = normalizeWrappedText(raw)   // PDF 断行合并
             let now = Date().timeIntervalSince1970
             // 同一内容 2 秒内重复复制不重复触发；超过 2 秒再次复制则重新显示
             if text == monLastHandled, now - monLastTime < 2.0 { continue }

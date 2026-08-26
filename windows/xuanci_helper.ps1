@@ -1,4 +1,4 @@
-﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿﻿﻿﻿﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -24,13 +24,13 @@ $DEFAULTS = @{
     width = 380
     origFontSize = 15
     transFontSize = 14
-    opacity = 0.95
+    opacity = 0.98
     radius = 12
-    bgColor = '#1A1A1A'
-    copyColor = '#2D7DFF'
-    closeColor = '#555555'
-    origColor = '#FFFFFF'
-    transColor = '#6EE7B7'
+    bgColor = '#FBF6EC'    # 苹果米黄
+    copyColor = '#FF3B30'  # 苹果红
+    closeColor = '#A89E8B'
+    origColor = '#1D1D1F'
+    transColor = '#E5352B'
 }
 
 function Load-Config {
@@ -59,6 +59,34 @@ function HexToColor($hex) {
 }
 function ToHexColor($c) {
     return ('#{0:X2}{1:X2}{2:X2}' -f $c.R, $c.G, $c.B)
+}
+
+# ---------- PDF 断行归一化 ----------
+function Normalize-Wrapped($text) {
+    $parts = $text -split "?
+?
++"
+    $out = @()
+    foreach ($p in $parts) {
+        $lines = $p -split "?
+"
+        if ($lines.Count -le 1) { $out += $p; continue }
+        $sb = $lines[0]
+        for ($i = 1; $i -lt $lines.Count; $i++) {
+            $prevLast = $lines[$i-1].Substring($lines[$i-1].Length - 1, 1)
+            $curFirst = $lines[$i].Substring(0, 1)
+            if ($prevLast -match '[。！？!?；;""…]') {
+                $sb += "`n"
+            } else {
+                $cjkP = $prevLast -match '[㐀-鿿]'
+                $cjkC = $curFirst -match '[㐀-鿿]'
+                if (-not ($cjkP -and $cjkC)) { $sb += ' ' }
+            }
+            $sb += $lines[$i]
+        }
+        $out += $sb
+    }
+    return ($out -join "`r`n`r`n")
 }
 
 # ---------- 乱码检测 ----------
@@ -248,7 +276,7 @@ $timer.Interval = 250
 $timer.add_Tick({
     try {
         if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
-        $t = [System.Windows.Forms.Clipboard]::GetText()
+        $t = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
         if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
