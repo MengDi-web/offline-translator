@@ -83,16 +83,11 @@ function ToHexColor($c) {
 
 # ---------- PDF 断行归一化 ----------
 function Normalize-Wrapped($text) {
-    $parts = $text -split "
-?
-
-?
-+"
+    # PDF 断行归一化：段落按空行切分（兼容 CRLF 与 LF）
+    $parts = $text -split '\r?\n(\r?\n)+'
     $out = @()
     foreach ($p in $parts) {
-        $lines = $p -split "
-?
-"
+        $lines = $p -split '\r?\n'
         if ($lines.Count -le 1) { $out += $p; continue }
         $sb = $lines[0]
         for ($i = 1; $i -lt $lines.Count; $i++) {
