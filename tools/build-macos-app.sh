@@ -49,6 +49,22 @@ cp tools/dist/launcher "$APP/Contents/MacOS/launcher"
 chmod +x "$APP/Contents/MacOS/launcher"
 cp "$NODE_DIR/bin/node" "$APP/Contents/MacOS/node"
 cp 划词助手 "$APP/Contents/MacOS/划词助手"
+
+# 应用图标（miaomiao图标.png → icns）
+if [ ! -f "miaomiao.icns" ]; then
+  echo "  生成应用图标..."
+  rm -rf /tmp/miaomiao.iconset && mkdir -p /tmp/miaomiao.iconset
+  for s in 16 32 64 128 256 512 1024; do
+    sips -z $s $s miaomiao图标.png --out "/tmp/miaomiao.iconset/icon_${s}x${s}.png" >/dev/null 2>&1
+  done
+  for s in "16 32" "32 64" "64 128" "128 256" "256 512" "512 1024"; do
+    set -- $s
+    cp "/tmp/miaomiao.iconset/icon_${2}x${2}.png" "/tmp/miaomiao.iconset/icon_${1}x${1}@2x.png" 2>/dev/null
+  done
+  iconutil -c icns /tmp/miaomiao.iconset -o miaomiao.icns
+fi
+mkdir -p "$APP/Contents/Resources"
+cp miaomiao.icns "$APP/Contents/Resources/miaomiao.icns"
 rsync -a "$PY_DIR/" "$APP/Contents/Resources/python/"          # 可搬移 Python 解释器
 rsync -a /tmp/python-libs/ "$APP/Contents/Resources/python-libs/"
 rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' --exclude '划词助手.app' \

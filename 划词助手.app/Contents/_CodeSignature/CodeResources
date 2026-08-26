@@ -3,9 +3,22 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict/>
+	<dict>
+		<key>Resources/miaomiao.icns</key>
+		<data>
+		7zFiSHHX6C9ddjKpXqG5+BzATPg=
+		</data>
+	</dict>
 	<key>files2</key>
-	<dict/>
+	<dict>
+		<key>Resources/miaomiao.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			D8pQRrfMhvXJFpiWJ0Pd4t0++LjM/66sjb6V+J6PlQY=
+			</data>
+		</dict>
+	</dict>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>

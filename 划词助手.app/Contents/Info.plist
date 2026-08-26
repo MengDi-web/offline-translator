@@ -10,6 +10,8 @@
   <string>划词助手</string>
   <key>CFBundleDisplayName</key>
   <string>划词助手</string>
+  <key>CFBundleIconFile</key>
+  <string>miaomiao</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
