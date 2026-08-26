@@ -14,7 +14,7 @@ Node server.js 启动本进程，通过行式 JSON 通信：
 """
 import json, os, sys, torch
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+ROOT = os.environ.get('MIAOMIAO_ROOT') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 MODELS = {
     'zh2en': os.path.join(ROOT, 'neural', 'models', 'opus-mt-zh-en-ft'),
     'en2zh': os.path.join(ROOT, 'neural', 'models', 'opus-mt-en-zh-ft'),
@@ -44,16 +44,9 @@ def get_model(direction):
 
 def translate(direction, text, num_beams=4):
     model, tok = get_model(direction)
-    with open('/tmp/nmt-recv.log', 'a', encoding='utf-8') as f:
-        f.write(f'device={device} text={repr(text)}\n')
     with torch.no_grad():
         enc = tok(text, return_tensors='pt', truncation=True, max_length=256).to(device)
-        ids = enc['input_ids'][0].tolist()
-        with open('/tmp/nmt-recv.log', 'a', encoding='utf-8') as f:
-            f.write(f'input_ids[:20]={ids[:20]} decoded={repr(tok.decode(ids[:20]))}\n')
         out = model.generate(**enc, max_new_tokens=256, num_beams=num_beams)
-        with open('/tmp/nmt-recv.log', 'a', encoding='utf-8') as f:
-            f.write(f'gen_ids[:30]={out[0].tolist()[:30]}\n')
         return tok.decode(out[0], skip_special_tokens=True)
 
 def main():
@@ -75,6 +68,8 @@ def main():
             else:
                 resp = {'id': req.get('id'), 'text': translate(direction, text)}
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             resp = {'id': req.get('id'), 'error': str(e)}
         sys.stdout.write(json.dumps(resp, ensure_ascii=False) + '\n')
         sys.stdout.flush()

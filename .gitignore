@@ -15,3 +15,6 @@ neural/probe_servers.py
 neural/setup_remote.py
 neural/gpu_status.py
 neural/build_ft_models.py
+dist/
+build/
+*.spec

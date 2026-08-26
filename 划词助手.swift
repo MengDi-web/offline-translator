@@ -661,10 +661,12 @@ func showServerHint() {
 
 // MARK: - 自动拉起翻译服务（脱离终端常驻：助手自己保证服务可用）
 func projectRoot() -> URL? {
+    // 兼容两种布局：仓库根目录 或 打包后的 .app/Contents/Resources
     var url = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
     while url.path != "/" {
-        if FileManager.default.fileExists(atPath: url.appendingPathComponent("server.js").path) {
-            return url
+        if FileManager.default.fileExists(atPath: url.appendingPathComponent("server.js").path) { return url }
+        if FileManager.default.fileExists(atPath: url.appendingPathComponent("Resources/server.js").path) {
+            return url.appendingPathComponent("Resources")
         }
         url.deleteLastPathComponent()
     }
@@ -683,7 +685,9 @@ func ensureServer() {
     _ = sem.wait(timeout: .now() + 2)
     if up { return }
     // 服务未运行 → 在项目目录启动 node server.js（后台常驻，不依赖终端）
-    let nodePath = ["/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node"]
+    // 优先使用与助手同目录的内置便携 node（打包版），再回退系统 node
+    let bundledNode = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().appendingPathComponent("node").path
+    let nodePath = [bundledNode, "/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node"]
         .first { FileManager.default.isExecutableFile(atPath: $0) }
     let proc = Process()
     if let np = nodePath {

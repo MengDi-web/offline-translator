@@ -285,14 +285,6 @@ async function doTranslate() {
   }
 }
 
-function speak(text, lang) {
-  fetch('/api/tts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, lang }),
-  }).catch(() => {});
-}
-
 function cardHtml(r) {
   const dirLabel = r.dir === 'en2zh' ? '英 → 中' : r.dir === 'zh2en' ? '中 → 英' : r.dir;
   if (r.engine === 'nmt') {
@@ -302,8 +294,6 @@ function cardHtml(r) {
       ${r.dictRough ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">词典直译参考: ${esc(r.dictRough)}</div>` : ''}
       <div class="action-row">
         <button class="btn ghost copyBtn">复制</button>
-        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'zh2en' ? 'zh' : 'en'}">🔊 朗读原文</button>
-        <button class="btn ghost ttsOutBtn" data-lang="${r.dir === 'zh2en' ? 'en' : 'zh'}">🔊 朗读译文</button>
       </div>
     </div>`;
   }
@@ -321,8 +311,6 @@ function cardHtml(r) {
       <ul class="senses">${r.translation.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
       <div class="action-row">
         <button class="btn ghost copyBtn">复制</button>
-        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'en2zh' ? 'en' : 'zh'}">🔊 朗读原文</button>
-        <button class="btn ghost ttsOutBtn" data-lang="${r.dir === 'en2zh' ? 'zh' : 'en'}">🔊 朗读译文</button>
       </div>
     </div>`;
   }
@@ -341,7 +329,6 @@ function cardHtml(r) {
       <div class="note">⚠ ${esc(r.note)}</div>
       <div class="action-row">
         <button class="btn ghost copyBtn">复制译文</button>
-        <button class="btn ghost ttsBtn" data-lang="${r.dir === 'en2zh' ? 'en' : 'zh'}">🔊 朗读原文</button>
       </div>
     </div>`;
   }
@@ -390,11 +377,6 @@ function render(r, container) {
       btn.textContent = '已复制 ✓';
       setTimeout(() => { btn.textContent = '复制'; }, 1200);
     });
-  }));
-  container.querySelectorAll('.ttsBtn').forEach(btn => btn.addEventListener('click', () => speak(r.input, btn.dataset.lang)));
-  container.querySelectorAll('.ttsOutBtn').forEach(btn => btn.addEventListener('click', () => {
-    const txt = r.engine === 'nmt' ? r.translation : r.kind === 'word' ? (r.translation || [])[0] : r.rough;
-    speak(txt, btn.dataset.lang);
   }));
 }
 

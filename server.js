@@ -9,7 +9,6 @@
  *   GET  /               网页界面
  *   GET  /api/translate?q=..&dir=auto|en2zh|zh2en
  *   GET  /api/suggest?q=..
- *   POST /api/tts        {text, lang}
  *   GET  /api/stats      词典加载情况
  */
 'use strict';
@@ -22,7 +21,6 @@ const { spawn } = require('child_process');
 
 const translate = require('./lib/translate');
 const dict = require('./lib/dictionary');
-const tts = require('./lib/tts');
 const context = require('./lib/context');
 
 const ROOT = __dirname;
@@ -203,13 +201,6 @@ const server = http.createServer(async (req, res) => {
       const q = (u.searchParams.get('q') || '').trim();
       if (!q) return sendJson(res, 200, { suggestions: [] });
       return sendJson(res, 200, { suggestions: dict.suggestEn(q, 8) });
-    }
-
-    if (p === '/api/tts' && req.method === 'POST') {
-      const body = JSON.parse((await readBody(req)) || '{}');
-      if (!body.text) return sendJson(res, 400, { error: '缺少 text' });
-      const r = await tts.speakSync(String(body.text).slice(0, 200), body.lang || 'en');
-      return sendJson(res, r.ok ? 200 : 501, r);
     }
 
     if (p === '/api/stats') {
