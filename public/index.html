@@ -285,9 +285,15 @@ let lastResult = null;
 
 const HISTORY_KEY = 'offline-translator-history';
 function getHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; } }
+function historyText(r) {
+  // 词典词条 translation 是数组；神经翻译是字符串 —— 取完整内容（不能 [0] 截成首字母）
+  if (r.rough) return r.rough;
+  if (r.translation) return Array.isArray(r.translation) ? r.translation[0] : r.translation;
+  return '';
+}
 function addHistory(q, r) {
   const h = getHistory().filter(x => x.q !== q);
-  h.unshift({ q, r: r.rough || (r.translation ? r.translation[0] : ''), t: Date.now() });
+  h.unshift({ q, r: historyText(r), t: Date.now() });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 30)));
   renderHistory();
 }
