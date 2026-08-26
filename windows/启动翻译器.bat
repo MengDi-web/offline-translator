@@ -28,6 +28,12 @@ if errorlevel 1 (
 rem 自动启动划词助手（托盘图标，最小化窗口）
 start "划词助手" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "%WIN%xuanci_helper.ps1"
 
+if not exist "%ROOT%\neural\.venv\Scripts\python.exe" (
+    echo [提示] 还没运行过「一键部署.cmd」→ 神经翻译不可用，只能查词典
+    echo        建议：先关闭本窗口，运行 windows\一键部署.cmd（只需一次），
+    echo        装好后再运行本脚本，即可获得完整翻译效果。
+    echo.
+)
 echo 正在启动翻译服务...
 echo 启动后请打开浏览器，地址栏输入:  http://127.0.0.1:6688
 echo 保持本窗口打开，不要关闭（关闭即停止服务）。
