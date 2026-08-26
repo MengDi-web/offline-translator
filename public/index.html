@@ -132,6 +132,35 @@
 
   .error { color: var(--danger); background: rgba(192, 57, 43, .07); border: 1px solid rgba(192, 57, 43, .25); border-radius: 12px; padding: 12px 16px; font-size: 14px; }
 
+  /* 欢迎弹窗（苹果配色 + 猫猫） */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(60, 40, 20, .35);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    animation: fade .25s ease;
+  }
+  .modal {
+    background: #FFFDF7; border: 1px solid #E8DFCF; border-radius: 20px;
+    max-width: 440px; width: 92%; padding: 26px 26px 20px;
+    box-shadow: 0 20px 60px rgba(120, 60, 20, .25);
+    text-align: center;
+  }
+  .modal .cat { font-size: 52px; margin-bottom: 8px; }
+  .modal h2 { font-size: 21px; color: #E5352B; margin-bottom: 14px; font-weight: 700; }
+  .modal p { font-size: 14px; color: #4a4338; line-height: 1.9; margin: 6px 0; text-align: left; padding-left: 8px; }
+  .modal .btn { margin-top: 16px; font-size: 15px; padding: 11px 34px; }
+  .modal .hint { font-size: 11px; color: #8a8272; margin-top: 10px; }
+
+  /* 历史删除键 */
+  .hist-item { position: relative; }
+  .hist-del {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: #F6F1E7; color: #b08b7a; border: 1px solid #E8DFCF;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 11px;
+    cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .hist-del:hover { background: #FF3B30; color: #fff; border-color: #FF3B30; }
+  .hist-item .hist-r { padding-right: 26px; }
+
   .history { margin-top: 26px; }
   .history h3 { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
   .hist-item {
@@ -153,10 +182,10 @@
 <div class="container">
   <header>
     <div class="brand">
-      <div class="logo">译</div>
+      <div class="logo">🐱</div>
       <div>
         <h1>miaomiao翻译器</h1>
-        <p>中英互译 · 词典数据已内置 · 断网可用</p>
+        <p>中英互译 · 完全离线 · 喵～</p>
       </div>
     </div>
     <div class="badges">
@@ -195,8 +224,22 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="welcome" style="display:none">
+  <div class="modal">
+    <div class="cat">🐱</div>
+    <h2>喵喵！欢迎来到 miaomiao翻译器</h2>
+    <p>🐾 划词翻译：选中电脑上任何文字，按 <b>Cmd+C / Ctrl+C</b>，翻译弹窗马上出现～</p>
+    <p>🐾 想关掉弹窗？点弹窗上的「<b>✕</b>」就好啦，它不会自动打扰你喵。</p>
+    <p>🐾 想让弹窗更合心意？菜单栏「<b>喵</b>」图标 → 设置…（或点弹窗上的「设置」键）</p>
+    <p>🐾 网页翻译：在下面输入框打字，回车立刻翻译！断网也能用哦。</p>
+    <button class="btn" id="welcomeOk">喵，明白啦！</button>
+    <div class="hint">（本说明只显示这一次，之后可以直接用）</div>
+  </div>
+</div>
+
 <footer>
-  数据来源: <a href="https://github.com/skywind3000/ECDICT" target="_blank">ECDICT</a>（英汉词典）·
+  🐾 miaomiao翻译器 · 中英互译 · 完全离线 · 喵～
+  <br>数据来源: <a href="https://github.com/skywind3000/ECDICT" target="_blank">ECDICT</a>（英汉词典）·
   <a href="https://www.mdbg.net/chinese/dictionary?page=cc-cedict" target="_blank">CC-CEDICT</a>（CC-BY-SA 4.0）<br>
   所有查询均在本地完成，不上传任何内容。
 </footer>
@@ -221,11 +264,12 @@ function renderHistory() {
   const wrap = $('#historyWrap');
   if (!h.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
-  $('#history').innerHTML = h.map(x =>
-    `<div class="hist-item" data-q="${escapeAttr(x.q)}">
+  $('#history').innerHTML = h.map((x, i) =>
+    `<div class="hist-item" data-q="${escapeAttr(x.q)}" data-i="${i}">
        <span class="hist-q">${esc(x.q)}</span>
        <span class="hist-r">${esc(x.r)}</span>
        <span class="hist-time">${new Date(x.t).toLocaleTimeString()}</span>
+       <button class="hist-del" title="删除" data-i="${i}">✕</button>
      </div>`).join('');
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -386,11 +430,32 @@ input.addEventListener('keydown', (e) => {
 });
 goBtn.addEventListener('click', doTranslate);
 
-// 历史点击
+// 历史点击：✕ 删除该条；点条目则重新翻译
 $('#history').addEventListener('click', (e) => {
+  const del = e.target.closest('.hist-del');
+  if (del) {
+    e.stopPropagation();
+    const h = getHistory();
+    h.splice(Number(del.dataset.i), 1);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    renderHistory();
+    return;
+  }
   const item = e.target.closest('.hist-item');
   if (item) { input.value = item.dataset.q; doTranslate(); }
 });
+
+// 首次访问显示使用说明
+(function showWelcome() {
+  if (localStorage.getItem('miaomiao-welcome-v1')) return;
+  const w = $('#welcome');
+  if (!w) return;
+  w.style.display = 'flex';
+  $('#welcomeOk').addEventListener('click', () => {
+    w.style.display = 'none';
+    localStorage.setItem('miaomiao-welcome-v1', '1');
+  });
+})();
 
 // 词典状态
 fetch('/api/stats').then(r => r.json()).then(s => {
