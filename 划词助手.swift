@@ -11,6 +11,28 @@
 import Cocoa
 import ApplicationServices
 
+// MARK: - 单实例锁（防止重复启动 → 双弹窗 / 循环翻译）
+var singletonLockFD: Int32 = -1
+func acquireSingletonLock() -> Bool {
+    let dir = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/miaomiao-translator")
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let path = dir.appendingPathComponent("helper.lock").path
+    let fd = open(path, O_CREAT | O_RDWR, 0o644)
+    if fd < 0 { return true } // 锁文件无法创建时放行，避免误杀
+    var fl = flock()
+    fl.l_type = Int16(F_WRLCK)
+    fl.l_whence = Int16(SEEK_SET)
+    fl.l_start = 0
+    fl.l_len = 0
+    if fcntl(fd, F_SETLK, &fl) == -1 {
+        close(fd)
+        return false // 已有其他实例持有锁
+    }
+    singletonLockFD = fd // 保持 fd 打开以维持锁
+    return true
+}
+
 let SERVER_URL = URL(string: "http://127.0.0.1:6688/api/context-translate")!
 
 // 旧 SDK 未导出的辅助功能常量（字符串形式声明）
@@ -879,6 +901,12 @@ final class AppController: NSObject {
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+
+// 单实例检查：已有实例在运行则本次直接退出
+if !acquireSingletonLock() {
+    debugLog("检测到已有实例在运行，本次启动退出\n")
+    exit(0)
+}
 
 Settings.migrateIfNeeded()   // 默认值版本升级 → 清除旧保存值
 popupPanel = PopupPanel()
