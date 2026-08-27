@@ -914,8 +914,18 @@ var monLastTime = 0.0
 func startMonitor() {
     debugLog("monitor 启动(剪贴板模式)\n")
     DispatchQueue.global(qos: .userInitiated).async {
+        var tick = 0
         while true {
             Thread.sleep(forTimeInterval: 0.25)
+            tick += 1
+            // 每 12 次(≈3秒)同步服务器划词开关: 页面按钮与菜单保持同一状态
+            if tick % 12 == 0, let on = fetchSelectionMode() {
+                let p = !on
+                if p != paused {
+                    paused = p
+                    DispatchQueue.main.async { syncPauseUI() }
+                }
+            }
             if paused { continue }
             let pb = NSPasteboard.general
             let cc = pb.changeCount
@@ -988,6 +998,33 @@ final class PageBridge: NSObject, WKScriptMessageHandler {
     }
 }
 
+/// 读取服务器划词开关(后台线程调用, 同步)
+func fetchSelectionMode() -> Bool? {
+    let sem = DispatchSemaphore(value: 0)
+    var enabled: Bool?
+    let task = URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:6688/api/selection-mode")!) { data, _, _ in
+        if let d = data, let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+            enabled = j["enabled"] as? Bool
+        }
+        sem.signal()
+    }
+    task.resume()
+    _ = sem.wait(timeout: .now() + 2)
+    return enabled
+}
+/// 同步暂停状态的菜单显示（标题 + 勾选标记，让状态变化可见）
+func syncPauseUI() {
+    let title = paused ? "开启划词" : "暂停划词"
+    if let st = statusItem.menu?.items[1] {
+        st.title = title
+        st.state = paused ? .on : .off
+    }
+    if let mi = menuPauseItem {
+        mi.title = title
+        mi.state = paused ? .on : .off
+    }
+}
+
 final class AppController: NSObject, NSApplicationDelegate {
     // 作为应用主进程时：点击 Dock 图标 → 前置自己的窗口（内嵌翻译页面）
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -1037,8 +1074,13 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
     @objc func togglePause() {
         paused.toggle()
-        (statusItem.menu?.items[1])?.title = paused ? "继续" : "暂停"
-        menuPauseItem?.title = paused ? "继续划词" : "暂停划词"
+        // 同步服务器「划词开关」(页面按钮与菜单显示同一状态)
+        var req = URLRequest(url: URL(string: "http://127.0.0.1:6688/api/selection-mode")!)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["enabled": !paused])
+        URLSession.shared.dataTask(with: req).resume()
+        syncPauseUI()
     }
     @objc func quitApp() {
         NSApplication.shared.terminate(nil)
@@ -1111,17 +1153,14 @@ if appMain {
     viewMenu.addItem(zOut)
     viewMenu.addItem(zActual)
     viewItem.submenu = viewMenu
-    // 划词菜单：暂停/继续 + 打开设置
+    // 划词菜单：暂停/开启（设置用顶层「设置…」，不在此重复）
     let cutItem = NSMenuItem()
     mainMenu.addItem(cutItem)
     let cutMenu = NSMenu(title: "划词")
     let pauseItem2 = NSMenuItem(title: "暂停划词", action: #selector(AppController.togglePause), keyEquivalent: "")
     pauseItem2.target = controller
     menuPauseItem = pauseItem2
-    let cutSettings = NSMenuItem(title: "划词设置…", action: #selector(AppController.openSettings), keyEquivalent: "")
-    cutSettings.target = controller
     cutMenu.addItem(pauseItem2)
-    cutMenu.addItem(cutSettings)
     cutItem.submenu = cutMenu
     // 窗口菜单：最小化/缩放
     let winItem = NSMenuItem()

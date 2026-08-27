@@ -595,6 +595,14 @@ $('#history').addEventListener('click', (e) => {
     btn.classList.toggle('on', on);
     btn.textContent = on ? '划词已开启' : '开启一键划词';
   }
+  // 每 2 秒同步服务器划词开关（菜单栏/助手修改后按钮状态自动跟随）
+  setInterval(async () => {
+    try {
+      const r = await fetch('/api/selection-mode');
+      const j = await r.json();
+      applyMode(j.enabled);
+    } catch {}
+  }, 2000);
   // 悬停展示使用方法
   let tipTimer = null;
   const showTip = () => { clearTimeout(tipTimer); tip.classList.add('show'); };
