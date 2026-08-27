@@ -393,6 +393,14 @@ final class PopupPanel: NSPanel {
         return lm.usedRect(for: container).size
     }
 
+    var lastResp: [String: Any]?   // 记住最后一次响应, 设置变更后可整窗重建
+
+    func show(resp: [String: Any], near point: NSPoint) {
+        lastResp = resp
+        let (attr, copy) = buildAttributed(resp)
+        show(attr: attr, copy: copy, near: point)
+    }
+
     func show(attr: NSAttributedString, copy: String, near point: NSPoint) {
         copyText = copy
         textView.textStorage?.setAttributedString(attr)
@@ -439,6 +447,35 @@ final class PopupPanel: NSPanel {
         }
         ts.endEditing()
         textView.needsDisplay = true
+    }
+    /// 按当前设置重新测量并调整弹窗尺寸(保持原位)
+    func layoutPopup() {
+        let w = Settings.width
+        let pad: CGFloat = 28
+        let textW = w - pad
+        let attr = textView.attributedString()
+        let measured = size(for: attr, maxWidth: textW)
+        let textH = min(360, max(40, measured.height + pad))
+        let h = textH + 34
+        var f = frame
+        f.size = NSSize(width: w, height: h)
+        textView.frame = NSRect(x: 0, y: 0, width: textW, height: textH)
+        setFrame(f, display: true)
+    }
+    /// 弹窗已打开时应用设置变更: 背景/圆角/按钮/颜色/字号/宽度 全部即时更新
+    func reapplySettings() {
+        backgroundColor = .clear
+        contentView?.layer?.backgroundColor = Settings.bgColor.withAlphaComponent(Settings.opacity).cgColor
+        contentView?.layer?.cornerRadius = Settings.radius
+        styleButtons()
+        if let resp = lastResp {
+            let (attr, copy) = buildAttributed(resp)   // 用新字号/新配色重建文字
+            copyText = copy
+            textView.textStorage?.setAttributedString(attr)
+        } else {
+            applyThemeColors()
+        }
+        layoutPopup()
     }
     func styleButtons() {
         func apply(_ btn: NSButton, _ color: NSColor) {
@@ -712,8 +749,7 @@ final class SettingsPanel: NSPanel {
         popupPanel.backgroundColor = .clear
         popupPanel.contentView?.layer?.backgroundColor = Settings.bgColor.withAlphaComponent(Settings.opacity).cgColor
         popupPanel.contentView?.layer?.cornerRadius = Settings.radius
-        popupPanel.styleButtons()
-        popupPanel.applyThemeColors()   // 已打开的弹窗文字颜色即时跟随主题
+        popupPanel.reapplySettings()   // 弹窗已打开时全部设置(尺寸/字号/颜色)即时生效
     }
 }
 
@@ -977,8 +1013,7 @@ func startMonitor() {
                     return
                 }
                 if let resp = resp {
-                    let (attr, copy) = buildAttributed(resp)
-                    popupPanel.show(attr: attr, copy: copy, near: NSEvent.mouseLocation)
+                    popupPanel.show(resp: resp, near: NSEvent.mouseLocation)
                 } else {
                     showServerHint()
                 }
