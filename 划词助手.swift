@@ -526,6 +526,7 @@ final class SettingsPanel: NSPanel {
         themeControl.target = self
         themeControl.action = #selector(changed)
         applyThemeTint(staged: false)
+        refreshLabels()
 
         func sliderRow(_ t: String, _ slider: NSSlider, _ label: NSTextField) -> NSStackView {
             let tt = NSTextField(labelWithString: t)
@@ -650,6 +651,11 @@ final class SettingsPanel: NSPanel {
             } else {
                 let cell = TintedSliderCell()
                 cell.tint = c
+                // 换自定义 Cell 时必须保留滑块的取值范围与当前值，否则会归零
+                cell.minValue = sl.minValue
+                cell.maxValue = sl.maxValue
+                cell.doubleValue = sl.doubleValue
+                cell.controlView = sl
                 sl.cell = cell
             }
             sl.needsDisplay = true
@@ -685,6 +691,8 @@ final class SettingsPanel: NSPanel {
         origFontLabel.stringValue = "\(Int(origFontSlider.doubleValue))pt"
         transFontLabel.stringValue = "\(Int(transFontSlider.doubleValue))pt"
         opacityLabel.stringValue = String(format: "%.0f%%", opacitySlider.doubleValue * 100)
+        mainWidthLabel.stringValue = "\(Int(mainWidthSlider.doubleValue))"
+        mainHeightLabel.stringValue = "\(Int(mainHeightSlider.doubleValue))"
     }
     func applyToPopup() {
         popupPanel.backgroundColor = .clear
