@@ -44,11 +44,14 @@ function setSelectionMode(on) {
 }
 
 // ---------- 神经翻译后端（常驻 Python 子进程，完全离线） ----------
-// Python 路径：优先环境变量 NMT_PY；macOS 默认 /tmp 的 venv；Windows 默认 neural/.venv
+// Python 路径：优先环境变量 NMT_PY；macOS 默认 /tmp 的 venv（重启会被清空，
+// 故兜底用 app 内置便携 Python）；Windows 默认 neural/.venv
 function findNmtPython() {
   if (process.env.NMT_PY && fs.existsSync(process.env.NMT_PY)) return process.env.NMT_PY;
+  const bundled = path.join(ROOT, 'dist', 'miaomiao翻译器.app', 'Contents', 'Resources', 'python', 'bin', 'python3.12');
   const candidates = [
     '/tmp/offline-nmt-venv/bin/python',
+    bundled,
     path.join(ROOT, 'neural', '.venv', 'Scripts', 'python.exe'),
     path.join(ROOT, 'neural', '.venv', 'bin', 'python'),
     path.join(ROOT, 'venv', 'Scripts', 'python.exe'),
@@ -57,6 +60,11 @@ function findNmtPython() {
   return null;
 }
 const NMT_PY = findNmtPython();
+/** 便携 Python 对应的依赖库目录（PYTHONPATH 用） */
+function bundledPythonLibs() {
+  const libs = path.join(ROOT, 'dist', 'miaomiao翻译器.app', 'Contents', 'Resources', 'python-libs');
+  return fs.existsSync(libs) ? libs : null;
+}
 let nmt = null;             // child process
 let nmtReady = false;       // 后端是否就绪（模型已加载）
 let nmtQueue = [];
@@ -67,9 +75,15 @@ function startNmt() {
     console.log('[nmt] 后端不可用（缺少 venv 或脚本），仅使用词典引擎');
     return;
   }
+  const env = { ...process.env, PYTHONUTF8: '1' };   // 强制 Python UTF-8，避免 locale 编码导致乱码
+  // 使用 app 内置便携 Python 时，补上其依赖库目录（torch/transformers）
+  const libs = bundledPythonLibs();
+  if (libs && !(process.env.PYTHONPATH || '').includes(libs)) {
+    env.PYTHONPATH = libs + (process.env.PYTHONPATH ? ':' + process.env.PYTHONPATH : '');
+  }
   nmt = spawn(NMT_PY, [path.join(ROOT, 'neural', 'nmt_server.py')], {
     stdio: ['pipe', 'pipe', 'inherit'],
-    env: { ...process.env, PYTHONUTF8: '1' },   // 强制 Python UTF-8，避免 locale 编码导致乱码
+    env,
   });
   // 必须按完整行解码：累积 Buffer，找到换行符再整体转 UTF-8（避免多字节字符被分块截断）
   let buf = Buffer.alloc(0);
