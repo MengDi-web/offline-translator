@@ -30,6 +30,11 @@ if (-not $singletonMutex.WaitOne(0)) {
     exit 1
 }
 
+# ---------- 运行日志（windows\helper.log，排错用） ----------
+$LOG = Join-Path $SCRIPT_DIR 'helper.log'
+function Log($msg) {
+    try { Add-Content -Path $LOG -Value ("[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $msg) -Encoding UTF8 } catch {}
+}
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -71,6 +76,7 @@ function Save-Config($cfg) {
 }
 
 $cfg = Load-Config
+Log ("启动 PID=$PID")
 
 function HexToColor($hex) {
     try {
@@ -298,20 +304,26 @@ $timer.add_Tick({
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
         if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
+        Log ("剪贴板文本({0}字符): {1}" -f $t.Length, $t.Substring(0, [Math]::Min(30, $t.Length)))
         if (Test-Garbled $t) {
+            Log "判定为乱码, 提示不翻译"
             Show-Popup @{ error = '⚠ 复制内容疑似乱码（可能来自应用的复制保护），无法翻译' }
             $script:lastText = $t; $script:lastCopyTime = $now
             return
         }
         $resp = Request-Translation $t
         if ($resp) {
-            if ($resp.disabled) { return }   # 网页「开启一键划词」未开 → 不弹窗
+            if ($resp.disabled) { Log "服务端: 划词未开启(disabled), 不弹窗"; return }
+            Log ("服务端响应: error={0} kind={1}" -f $resp.error, $resp.kind)
             Show-Popup $resp
         } else {
+            Log "请求失败(翻译服务未运行?)"
             Show-Popup @{ error = '翻译服务未运行，请先启动: node server.js' }
         }
         $script:lastText = $t; $script:lastCopyTime = $now
-    } catch {}
+    } catch {
+        Log ("tick错误: {0}" -f $_)
+    }
 })
 $script:lastText = ''
 $script:lastCopyTime = [DateTime]::MinValue

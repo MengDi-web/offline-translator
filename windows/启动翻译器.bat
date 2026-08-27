@@ -27,6 +27,11 @@ if errorlevel 1 (
 
 rem 自动启动划词助手（托盘图标，最小化窗口）
 start "划词助手" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "%WIN%xuanci_helper.ps1"
+timeout /t 2 /nobreak >nul
+if not exist "%WIN%helper.log" (
+    echo [提示] 划词助手似乎未启动成功（没生成 windows\helper.log）
+    echo        若划词没反应，请把 windows\helper.log 的内容发给开发者
+)
 
 if not exist "%ROOT%\neural\.venv\Scripts\python.exe" (
     echo [提示] 还没运行过「一键部署.cmd」→ 神经翻译不可用，只能查词典
