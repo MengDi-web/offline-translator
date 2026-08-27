@@ -70,7 +70,7 @@ enum Theme: String, CaseIterable {
 
     var name: String {
         switch self {
-        case .apple: return "苹果"
+        case .apple: return "红苹果"
         case .greenApple: return "青苹果"
         case .banana: return "香蕉"
         case .soda: return "汽水"
@@ -79,24 +79,24 @@ enum Theme: String, CaseIterable {
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
-        case .greenApple: return hexToColor("", fallback: 0x1A2416)
-        case .banana: return hexToColor("", fallback: 0x2A2410)
-        case .soda: return hexToColor("", fallback: 0x0E2730) } }
+        case .greenApple: return hexToColor("", fallback: 0x000000)
+        case .banana: return hexToColor("", fallback: 0x000000)
+        case .soda: return hexToColor("", fallback: 0x000000) } }
     var popupOrig: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFF5648)
-        case .greenApple: return hexToColor("", fallback: 0x8FD460)
-        case .banana: return hexToColor("", fallback: 0xFFD54A)
-        case .soda: return hexToColor("", fallback: 0x5CC4E0) } }
+        case .greenApple: return hexToColor("", fallback: 0x96D35F)
+        case .banana: return hexToColor("", fallback: 0xFECB3E)
+        case .soda: return hexToColor("", fallback: 0x53D5FD) } }
     var popupTrans: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6CF)
-        case .greenApple: return hexToColor("", fallback: 0xF0F6E0)
+        case .greenApple: return hexToColor("", fallback: 0xFEFCDD)
         case .banana: return hexToColor("", fallback: 0xFDF6DE)
-        case .soda: return hexToColor("", fallback: 0xE0F2F9) } }
+        case .soda: return hexToColor("", fallback: 0xFFFFFF) } }
     var popupCopy: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6C6)
-        case .greenApple: return hexToColor("", fallback: 0xE4EFD0)
-        case .banana: return hexToColor("", fallback: 0xF6ECC4)
-        case .soda: return hexToColor("", fallback: 0xCCEAF3) } }
+        case .greenApple: return hexToColor("", fallback: 0xB1DD8C)
+        case .banana: return hexToColor("", fallback: 0xFECB3E)
+        case .soda: return hexToColor("", fallback: 0x74A7FE) } }
     var popupClose: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFFFFFF)
         case .greenApple: return hexToColor("", fallback: 0xFFFFFF)
@@ -980,16 +980,17 @@ if appMain {
     let appItem = NSMenuItem()
     mainMenu.addItem(appItem)
     let appMenu = NSMenu()
-    let settingsItem = NSMenuItem(title: "设置…", action: #selector(AppController.openSettings), keyEquivalent: ",")
-    settingsItem.target = controller
     let reloadItem = NSMenuItem(title: "重新加载页面", action: #selector(AppController.reloadPage), keyEquivalent: "r")
     reloadItem.target = controller
     let quitItem = NSMenuItem(title: "退出 miaomiao翻译器", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-    appMenu.addItem(settingsItem)
     appMenu.addItem(reloadItem)
     appMenu.addItem(.separator())
     appMenu.addItem(quitItem)
     appItem.submenu = appMenu
+    // 「设置…」作为独立的顶层菜单项，放在「编辑」旁边（Cmd+,）
+    let settingsTop = NSMenuItem(title: "设置…", action: #selector(AppController.openSettings), keyEquivalent: ",")
+    settingsTop.target = controller
+    mainMenu.addItem(settingsTop)
     // 编辑菜单：WebView 内复制/粘贴/全选快捷键需要
     let editItem = NSMenuItem()
     mainMenu.addItem(editItem)
