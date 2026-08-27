@@ -1,0 +1,57 @@
+#!/bin/bash
+# miaomiao翻译器 一键启动器：后台启动服务 + 划词助手，打开网页，并常驻作为应用主进程
+# （常驻让 Cmd+Q / 右键退出 能正常结束应用并清理服务与助手）
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+RES="$APP_DIR/Resources"
+NODE="$APP_DIR/MacOS/node"
+HELPER="$APP_DIR/MacOS/划词助手"
+export MIAOMIAO_ROOT="$RES"
+
+# 内置可搬移 Python（随应用走，无需系统安装）
+BUNDLED_PY="$RES/python/bin/python3.12"
+PY="$BUNDLED_PY"
+if [ ! -x "$PY" ]; then
+  # 回退系统 Python 3.12
+  for c in "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12" \
+           "/usr/local/bin/python3.12" "/opt/homebrew/bin/python3.12" python3.12; do
+    if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; exit(0 if sys.version_info[:2]==(3,12) else 1)' 2>/dev/null; then
+      PY="$c"; break
+    fi
+  done
+fi
+export NMT_PY="${PY:-/usr/bin/python3}"
+# 神经库随应用走（PYTHONPATH 方式，无需 pip 安装）
+export PYTHONPATH="$RES/python-libs"
+export PYTHONHOME=""
+
+SERVER_PID=""
+# 服务未运行时启动
+if ! curl -s -m 2 "http://127.0.0.1:6688/api/stats" >/dev/null 2>&1; then
+  "$NODE" "$RES/server.js" --port 6688 > /tmp/miaomiao-server.log 2>&1 &
+  SERVER_PID=$!
+fi
+sleep 2
+
+# 划词助手（后台常驻，菜单栏「译」可设置/退出）
+pkill -f "$HELPER" 2>/dev/null
+"$HELPER" > /tmp/miaomiao-helper.log 2>&1 &
+HELPER_PID=$!
+
+# 打开网页
+open "http://127.0.0.1:6688"
+
+# 常驻：应用退出（Cmd+Q / 右键退出）时清理服务与助手
+cleanup() {
+  kill "$HELPER_PID" 2>/dev/null
+  if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null; fi
+  exit 0
+}
+trap cleanup TERM INT
+while true; do
+  # 助手退出（用户从菜单栏退出）时结束应用
+  if ! kill -0 "$HELPER_PID" 2>/dev/null; then
+    if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null; fi
+    exit 0
+  fi
+  sleep 3
+done
