@@ -496,13 +496,17 @@ $('#history').addEventListener('click', (e) => {
   btn.addEventListener('click', async () => {
     const isOn = btn.classList.contains('on');
     try {
-      await fetch('/api/selection-mode', {
+      const res = await fetch('/api/selection-mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !isOn }),
       });
-      applyMode(!isOn);
-    } catch {}
+      const j = await res.json();
+      if (!res.ok || j.error) { alert('操作失败：' + (j.error || ('HTTP ' + res.status))); return; }
+      applyMode(j.enabled);
+    } catch (e) {
+      alert('无法连接本地翻译服务，请确认黑色窗口（翻译服务）还开着');
+    }
   });
   function applyMode(on) {
     btn.classList.toggle('on', on);

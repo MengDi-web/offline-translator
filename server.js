@@ -260,9 +260,9 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/selection-mode') {
       if (req.method === 'POST') {
-        // 仅允许本页面（同源）切换划词开关：阻止恶意网页通过 no-cors POST 篡改
+        // 仅放行本机来源（127.0.0.1 / localhost 均可，兼容用户用 localhost 打开网页）
         const origin = req.headers.origin || '';
-        if (origin && origin !== `http://127.0.0.1:${port}`) {
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) {
           return sendJson(res, 403, { error: '跨源请求被拒绝' });
         }
         const body = JSON.parse((await readBody(req)) || '{}');
@@ -277,9 +277,9 @@ const server = http.createServer(async (req, res) => {
       if (!getSelectionMode()) {
         return sendJson(res, 200, { disabled: true, error: '划词功能未开启（请在网页上点击「开启一键划词」）' });
       }
-      // 同源校验：阻止恶意网页通过 no-cors POST 消耗本地服务（与 /api/selection-mode 一致）
+      // 同源校验：仅放行本机来源（与 /api/selection-mode 一致）
       const cOrigin = req.headers.origin || '';
-      if (cOrigin && cOrigin !== `http://127.0.0.1:${port}`) {
+      if (cOrigin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(cOrigin)) {
         return sendJson(res, 403, { error: '跨源请求被拒绝' });
       }
       const body = JSON.parse((await readBody(req)) || '{}');
