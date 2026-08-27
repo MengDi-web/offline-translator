@@ -96,6 +96,12 @@ REM ---------- 4. 翻译模型 ----------
 if not exist "neural\models\opus-mt-zh-en-ft\pytorch_model.bin" (
     echo [4/4] 下载翻译模型（约 300MB，视网速 1-5 分钟）...
     node tools\fetch-models.js
+    if errorlevel 1 (
+        echo [错误] 模型下载失败（网络问题或 Release 不可用），请重试
+        echo        也可以稍后重新双击「一键部署.cmd」，会跳过已完成步骤
+        pause
+        exit /b 1
+    )
 ) else (
     echo [4/4] 模型已就绪
 )

@@ -55,7 +55,8 @@ function sha256(file) {
 
 function httpOk(url, maxTime = 10) {
   try {
-    const code = execFileSync('curl', ['-sL', '--max-time', String(maxTime), '-o', NULL_DEV, '-w', '%{http_code}', url], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    // HEAD 请求探测可用性(跟随重定向, 不下载整个文件, 避免慢网超时误判)
+    const code = execFileSync('curl', ['-sIL', '--max-time', String(maxTime), '-o', NULL_DEV, '-w', '%{http_code}', url], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
     return code.startsWith('2');   // 只有 2xx 才算可用（404 不能当成功）
   } catch { return false; }
 }
@@ -63,7 +64,13 @@ function httpOk(url, maxTime = 10) {
 function downloadSmallFromHF(outDir, hfRepo) {
   fs.mkdirSync(outDir, { recursive: true });
   for (const f of SMALL_FILES) {
-    sh(`curl -sL --retry 3 -o "${outDir}/${f}" "https://hf-mirror.com/${hfRepo}/resolve/main/${f}"`);
+    const target = path.join(outDir, f);
+    sh(`curl -sL --retry 3 -o "${target}" "https://hf-mirror.com/${hfRepo}/resolve/main/${f}"`);
+    // hf-mirror 失败(空文件) → 直连 huggingface.co 兜底
+    if (!fs.existsSync(target) || fs.statSync(target).size === 0) {
+      console.log(`  [重试] ${f} 从官方源下载`);
+      sh(`curl -sL --retry 3 -o "${target}" "https://huggingface.co/${hfRepo}/resolve/main/${f}"`);
+    }
   }
 }
 
