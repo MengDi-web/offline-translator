@@ -76,6 +76,12 @@ enum Theme: String, CaseIterable {
         case .soda: return "汽水"
         }
     }
+    // 页面强调色（设置面板滑块等原生控件用）
+    var accent: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0xFF3B30)
+        case .greenApple: return hexToColor("", fallback: 0x96D35F)
+        case .banana: return hexToColor("", fallback: 0xFECB3E)
+        case .soda: return hexToColor("", fallback: 0x74A7FE) } }
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
@@ -438,6 +444,37 @@ final class PopupPanel: NSPanel {
 }
 
 // MARK: - 设置窗口
+// MARK: - 主题色滑块（轨道与圆钮跟随主题强调色）
+final class TintedSliderCell: NSSliderCell {
+    var tint: NSColor = .systemBlue
+    override func drawKnob(_ knobRect: NSRect) {
+        let r = knobRect.insetBy(dx: 1.5, dy: 1.5)
+        let path = NSBezierPath(ovalIn: r)
+        tint.setFill()
+        path.fill()
+        NSColor(white: 1, alpha: 0.9).setStroke()
+        path.lineWidth = 1
+        path.stroke()
+    }
+    override func drawBar(inside rect: NSRect, flipped: Bool) {
+        let h = max(4, min(6, rect.height))
+        let bar = NSRect(x: rect.minX, y: rect.midY - h / 2, width: rect.width, height: h)
+        let r = h / 2
+        let track = NSBezierPath(roundedRect: bar, xRadius: r, yRadius: r)
+        NSColor(white: 0.5, alpha: 0.22).setFill()
+        track.fill()
+        let range = maxValue - minValue
+        let frac = range > 0 ? CGFloat((doubleValue - minValue) / range) : 0
+        let filledW = max(0, bar.width * frac)
+        if filledW > 0.5 {
+            let filled = NSRect(x: bar.minX, y: bar.minY, width: filledW, height: bar.height)
+            let fpath = NSBezierPath(roundedRect: filled, xRadius: r, yRadius: r)
+            tint.setFill()
+            fpath.fill()
+        }
+    }
+}
+
 final class SettingsPanel: NSPanel {
     let widthSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
     let radiusSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
@@ -488,6 +525,7 @@ final class SettingsPanel: NSPanel {
         themeControl.selectedSegment = Settings.theme == .apple ? 0 : (Settings.theme == .greenApple ? 1 : (Settings.theme == .banana ? 2 : 3))
         themeControl.target = self
         themeControl.action = #selector(changed)
+        applyThemeTint(staged: false)
 
         func sliderRow(_ t: String, _ slider: NSSlider, _ label: NSTextField) -> NSStackView {
             let tt = NSTextField(labelWithString: t)
@@ -598,8 +636,24 @@ final class SettingsPanel: NSPanel {
     }
 
     @objc func changed() {
-        // 暂存：只更新数值显示，点「确认」后才保存并应用到弹窗
+        // 暂存：只更新数值显示，点「确认」后才保存并应用
         refreshLabels()
+        applyThemeTint(staged: true)   // 滑块颜色跟随当前选中的主题
+    }
+    /// 设置面板滑块着色为当前主题强调色
+    func applyThemeTint(staged: Bool) {
+        let theme = staged ? Theme.allCases[max(0, min(themeControl.selectedSegment, Theme.allCases.count - 1))] : Settings.theme
+        let c = theme.accent
+        for sl in [widthSlider, radiusSlider, origFontSlider, transFontSlider, opacitySlider, mainWidthSlider, mainHeightSlider] {
+            if let cell = sl.cell as? TintedSliderCell {
+                cell.tint = c
+            } else {
+                let cell = TintedSliderCell()
+                cell.tint = c
+                sl.cell = cell
+            }
+            sl.needsDisplay = true
+        }
     }
     @objc func confirmTapped() {
         Settings.save(width: CGFloat(widthSlider.doubleValue), radius: CGFloat(radiusSlider.doubleValue),
