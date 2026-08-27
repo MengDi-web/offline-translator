@@ -865,6 +865,7 @@ func startMonitor() {
 // MARK: - 入口
 let args = CommandLine.arguments
 debugMode = args.contains("--debug")
+let appMain = args.contains("--app-main")   // 作为 miaomiao翻译器.app 主进程运行（有 Dock 图标/菜单栏）
 
 if args.contains("--check") {
     let pb = NSPasteboard.general
@@ -877,7 +878,22 @@ if args.contains("--check") {
     exit(0)
 }
 
-final class AppController: NSObject {
+final class AppController: NSObject, NSApplicationDelegate {
+    // 作为应用主进程时：点击 Dock 图标 → 重新打开/前置浏览器页面
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openBrowserPage()
+        return true
+    }
+    // 应用退出时清理自己启动的翻译服务（node server.js）
+    func applicationWillTerminate(_ notification: Notification) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        p.arguments = ["-f", "server.js --port 6688"]
+        try? p.run()
+    }
+    @objc func openBrowserPageAction() {
+        openBrowserPage()
+    }
     @objc func openSettings() {
         settingsPanel.refreshLabels()
         NSApp.activate(ignoringOtherApps: true)
@@ -900,7 +916,7 @@ final class AppController: NSObject {
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(appMain ? .regular : .accessory)
 
 // 单实例检查：已有实例在运行则本次直接退出
 if !acquireSingletonLock() {
@@ -912,6 +928,31 @@ Settings.migrateIfNeeded()   // 默认值版本升级 → 清除旧保存值
 popupPanel = PopupPanel()
 settingsPanel = SettingsPanel()
 let controller = AppController()
+
+// 作为应用主进程：注册代理（点击图标重新打开网页 / 退出清理服务）+ 应用主菜单
+if appMain {
+    app.delegate = controller
+    let mainMenu = NSMenu()
+    let appItem = NSMenuItem()
+    mainMenu.addItem(appItem)
+    let appMenu = NSMenu()
+    let openItem = NSMenuItem(title: "打开翻译页面", action: #selector(AppController.openBrowserPageAction), keyEquivalent: "o")
+    let quitItem = NSMenuItem(title: "退出 miaomiao翻译器", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    openItem.target = controller
+    appMenu.addItem(openItem)
+    appMenu.addItem(.separator())
+    appMenu.addItem(quitItem)
+    appItem.submenu = appMenu
+    app.mainMenu = mainMenu
+    NSApp.activate(ignoringOtherApps: true)
+}
+
+/// 打开翻译网页（浏览器）
+func openBrowserPage() {
+    if let url = URL(string: "http://127.0.0.1:6688") {
+        NSWorkspace.shared.open(url)
+    }
+}
 
 // 菜单栏图标（设置按钮）
 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)

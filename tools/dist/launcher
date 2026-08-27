@@ -1,6 +1,6 @@
 #!/bin/bash
-# miaomiao翻译器 一键启动器：后台启动服务 + 划词助手，打开网页，并常驻作为应用主进程
-# （常驻让 Cmd+Q / 右键退出 能正常结束应用并清理服务与助手）
+# miaomiao翻译器 一键启动器：准备环境 → 启动服务 → 打开网页 → 主进程交给划词助手
+# 划词助手以 --app-main 常驻：提供 Dock 图标/菜单栏，点击图标前置浏览器，退出时清理服务
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 RES="$APP_DIR/Resources"
 NODE="$APP_DIR/MacOS/node"
@@ -24,34 +24,15 @@ export NMT_PY="${PY:-/usr/bin/python3}"
 export PYTHONPATH="$RES/python-libs"
 export PYTHONHOME=""
 
-SERVER_PID=""
 # 服务未运行时启动
 if ! curl -s -m 2 "http://127.0.0.1:6688/api/stats" >/dev/null 2>&1; then
   "$NODE" "$RES/server.js" --port 6688 > /tmp/miaomiao-server.log 2>&1 &
-  SERVER_PID=$!
 fi
 sleep 2
 
-# 划词助手（后台常驻，菜单栏「译」可设置/退出）
+# 清理可能残留的旧助手，再打开网页
 pkill -f "$HELPER" 2>/dev/null
-"$HELPER" > /tmp/miaomiao-helper.log 2>&1 &
-HELPER_PID=$!
-
-# 打开网页
 open "http://127.0.0.1:6688"
 
-# 常驻：应用退出（Cmd+Q / 右键退出）时清理服务与助手
-cleanup() {
-  kill "$HELPER_PID" 2>/dev/null
-  if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null; fi
-  exit 0
-}
-trap cleanup TERM INT
-while true; do
-  # 助手退出（用户从菜单栏退出）时结束应用
-  if ! kill -0 "$HELPER_PID" 2>/dev/null; then
-    if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null; fi
-    exit 0
-  fi
-  sleep 3
-done
+# 主进程交给划词助手（--app-main 常驻，处理菜单栏/退出/点击前置）
+exec "$HELPER" --app-main
