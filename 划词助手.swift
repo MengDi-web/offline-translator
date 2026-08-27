@@ -637,7 +637,7 @@ final class SettingsPanel: NSPanel {
                 sliderRow("圆角弧度", radiusSlider, radiusLabel),
                 sliderRow("划词字号", origFontSlider, origFontLabel),
                 sliderRow("翻译字号", transFontSlider, transFontLabel),
-                sliderRow("背景透明度", opacitySlider, opacityLabel),
+                sliderRow("背景不透明度", opacitySlider, opacityLabel)   // 数值=不透明度(75%=75%不透明, 非透明度),
             ], key: "secPopup"),
         ]
 

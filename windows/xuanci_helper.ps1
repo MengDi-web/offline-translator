@@ -7,7 +7,7 @@
 #   - PowerShell 5.1+ (Windows 10/11 自带; 必须是 powershell.exe 而非 pwsh, 需要 STA)
 #
 # 功能: 复制(Cmd+C)即弹窗翻译; 菜单栏托盘图标可开设置/退出;
-#       设置: 弹窗宽度/划词字号/翻译字号/背景色/背景透明度/复制键色/关闭键色/圆角
+#       设置: 弹窗宽度/划词字号/翻译字号/背景色/背景不透明度/复制键色/关闭键色/圆角
 
 param([switch]$Debug)
 
@@ -353,7 +353,7 @@ function Show-Settings {
     $trkWidth = Add-Slider $sf 10 '弹窗宽度' 260 560 $cfg.width 'width'
     $trkOrig = Add-Slider $sf 48 '划词字号' 10 24 $cfg.origFontSize 'origFontSize'
     $trkTrans = Add-Slider $sf 86 '翻译字号' 10 24 $cfg.transFontSize 'transFontSize'
-    $trkOpacity = Add-Slider $sf 124 '背景透明度' 30 100 ([int]($cfg.opacity*100)) 'opacity'
+    $trkOpacity = Add-Slider $sf 124 '背景不透明度' 30 100 ([int]($cfg.opacity*100)) 'opacity'
     $trkRadius = Add-Slider $sf 162 '圆角弧度' 0 28 $cfg.radius 'radius'
 
     function Add-ColorBtn($parent, $y, $labelText, $colorKey) {
