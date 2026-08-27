@@ -464,6 +464,14 @@ function cardHtml(r) {
       </div>
     </div>`;
   }
+  if (r.kind === 'mixed') {
+    return `<div class="card">
+      <div class="label">${dirLabel} · 混合文本（目标语言保留，另一语言翻译）</div>
+      <div class="rough multiline">${esc(r.translation)}</div>
+      ${r.note ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">${esc(r.note)}</div>` : ''}
+      <div class="action-row"><button class="btn ghost copyBtn">复制</button></div>
+    </div>`;
+  }
   if (r.kind === 'word') {
     return `<div class="card">
       <div class="label">${dirLabel} · 单词 / 短语</div>
