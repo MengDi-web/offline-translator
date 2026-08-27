@@ -970,6 +970,16 @@ if args.contains("--check") {
     exit(0)
 }
 
+/// 页面 → 原生桥接：网页右上角「设置」键调起原生设置面板
+final class PageBridge: NSObject, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "miaomiaoOpenSettings" else { return }
+        DispatchQueue.main.async {
+            controller.openSettings()
+        }
+    }
+}
+
 final class AppController: NSObject, NSApplicationDelegate {
     // 作为应用主进程时：点击 Dock 图标 → 前置自己的窗口（内嵌翻译页面）
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -1059,6 +1069,8 @@ if appMain {
 /// 主窗口（--app-main 模式）：内嵌 WebView 显示翻译页面，与浏览器无关
 func setupMainWindow() {
     let config = WKWebViewConfiguration()
+    // 页面「设置」键 → 原生设置面板
+    config.userContentController.add(PageBridge(), name: "miaomiaoOpenSettings")
     // 主题：页面加载前注入标记，网页 CSS 按 data-theme 应用对应配色
     let themeId = Settings.theme.rawValue
     if themeId != "apple" {

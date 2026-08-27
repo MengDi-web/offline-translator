@@ -79,6 +79,14 @@
     font-weight: 500;
   }
   .badge.green { background: rgba(34, 139, 80, .10); color: #1f7a45; border-color: rgba(34, 139, 80, .25); }
+  /* 页面右上角设置键：主题相关色 */
+  .settings-btn {
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent-deep);
+    border: 1px solid var(--accent); padding: 5px 13px; border-radius: 999px;
+    transition: all .15s;
+  }
+  .settings-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
   /* 一键划词：醒目大按钮 + 悬停说明 */
   .selection-panel { position: relative; display: flex; justify-content: center; margin: 4px 0 16px; }
   .selection-main {
@@ -107,7 +115,7 @@
     padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13px; transition: all .15s;
   }
   .dir-btn:hover { color: var(--text); border-color: var(--accent); }
-  .dir-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 3px 10px rgba(255,59,48,.25); }
+  .dir-btn.active { background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent); box-shadow: 0 3px 10px rgba(0,0,0,.10); }
 
   .input-wrap { position: relative; }
   textarea {
@@ -237,6 +245,7 @@
     <div class="badges">
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
       <span class="badge" id="dictBadge">加载词典…</span>
+      <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 设置</button>
     </div>
   </header>
 
@@ -306,6 +315,15 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const input = $('#input'), goBtn = $('#go'), resultBox = $('#result'), suggestBox = $('#suggest');
+
+// 页面右上角设置键：在翻译器 app 内桥接到原生设置面板
+$('#settingsBtn').addEventListener('click', () => {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.miaomiaoOpenSettings) {
+    window.webkit.messageHandlers.miaomiaoOpenSettings.postMessage(null);
+  } else {
+    alert('请通过翻译器菜单栏的「设置…」打开设置');
+  }
+});
 let curDir = 'auto';
 let curMode = 'auto';
 let lastResult = null;
