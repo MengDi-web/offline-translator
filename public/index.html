@@ -250,7 +250,7 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
     <div class="badges">
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
       <span class="badge" id="dictBadge">加载词典…</span>
-      <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 设置</button>
+      <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 红苹果</button>
     </div>
   </header>
 
@@ -319,6 +319,16 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
 <script>
 const $ = (s) => document.querySelector(s);
 const input = $('#input'), goBtn = $('#go'), resultBox = $('#result'), suggestBox = $('#suggest');
+
+// 页面右上角设置键：文字显示当前主题名（弹窗内的「设置」键不变）
+const THEME_NAMES = { 'apple': '红苹果', 'green-apple': '青苹果', 'banana': '香蕉', 'soda': '汽水' };
+function updateSettingsBtnLabel() {
+  const t = document.documentElement.getAttribute('data-theme') || 'apple';
+  $('#settingsBtn').textContent = '⚙︎ ' + (THEME_NAMES[t] || '红苹果');
+}
+updateSettingsBtnLabel();
+// 主题由 app 注入 data-theme 属性 → 属性变化时自动更新按钮文字
+new MutationObserver(updateSettingsBtnLabel).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 // 页面右上角设置键：在翻译器 app 内桥接到原生设置面板
 $('#settingsBtn').addEventListener('click', () => {
