@@ -881,7 +881,10 @@ if args.contains("--check") {
 final class AppController: NSObject, NSApplicationDelegate {
     // 作为应用主进程时：点击 Dock 图标 → 重新打开/前置浏览器页面
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        openBrowserPage()
+        // 等待应用激活完成后再打开浏览器：立即 open 会被激活过程抑制，导致要点两次
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            openBrowserPage()
+        }
         return true
     }
     // 应用退出时清理自己启动的翻译服务（node server.js）
