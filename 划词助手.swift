@@ -423,6 +423,23 @@ final class PopupPanel: NSPanel {
         // 不自动隐藏：由「✕」关闭键手动关闭
     }
 
+    /// 主题切换后立即更新已打开弹窗的原文/译文颜色（按字体匹配着色）
+    func applyThemeColors() {
+        guard let ts = textView.textStorage, ts.length > 0 else { return }
+        let ofs = Settings.origFontSize
+        let tfs = Settings.transFontSize
+        ts.beginEditing()
+        ts.enumerateAttribute(.font, in: NSRange(location: 0, length: ts.length)) { val, range, _ in
+            guard let f = val as? NSFont else { return }
+            if abs(f.pointSize - ofs) < 0.5 && f.fontDescriptor.symbolicTraits.contains(.bold) {
+                ts.addAttribute(.foregroundColor, value: Settings.origColor, range: range)
+            } else if abs(f.pointSize - tfs) < 0.5 {
+                ts.addAttribute(.foregroundColor, value: Settings.transColor, range: range)
+            }
+        }
+        ts.endEditing()
+        textView.needsDisplay = true
+    }
     func styleButtons() {
         func apply(_ btn: NSButton, _ color: NSColor) {
             btn.wantsLayer = true
@@ -699,6 +716,7 @@ final class SettingsPanel: NSPanel {
         popupPanel.contentView?.layer?.backgroundColor = Settings.bgColor.withAlphaComponent(Settings.opacity).cgColor
         popupPanel.contentView?.layer?.cornerRadius = Settings.radius
         popupPanel.styleButtons()
+        popupPanel.applyThemeColors()   // 已打开的弹窗文字颜色即时跟随主题
     }
 }
 
@@ -1207,9 +1225,16 @@ func setupMainWindow() {
 /// 应用主窗口设置（大小/主题）立即生效
 func applyMainWindow() {
     if let w = mainWindow {
-        var frame = w.frame
-        frame.size = NSSize(width: Settings.mainWidth, height: Settings.mainHeight)
-        w.setFrame(frame, display: true)
+        // 最大化(绿色按钮)时保持最大化, 不强行改尺寸(避免窗口偏移)
+        if !w.isZoomed {
+            let old = w.frame
+            let center = NSPoint(x: old.midX, y: old.midY)
+            let newSize = NSSize(width: Settings.mainWidth, height: Settings.mainHeight)
+            w.setFrame(NSRect(x: center.x - newSize.width / 2,
+                              y: center.y - newSize.height / 2,
+                              width: newSize.width, height: newSize.height),
+                       display: true)
+        }
     }
     if let web = mainWebView {
         web.evaluateJavaScript("document.documentElement.setAttribute('data-theme','\(Settings.theme.rawValue)')", completionHandler: nil)
