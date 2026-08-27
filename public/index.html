@@ -562,6 +562,10 @@ function bindCopy(container, r) {
     else if (r.kind === 'word') txt = (r.translation || []).join('；');
     else txt = r.rough || '';
     navigator.clipboard.writeText(txt).then(() => {
+      // 通知助手忽略这次剪贴板变化, 避免复制译文又触发划词弹窗
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.miaomiaoIgnoreCopy) {
+        window.webkit.messageHandlers.miaomiaoIgnoreCopy.postMessage(null);
+      }
       btn.textContent = '已复制 ✓';
       setTimeout(() => { btn.textContent = '复制'; }, 1200);
     });

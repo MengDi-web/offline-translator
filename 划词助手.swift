@@ -1041,9 +1041,11 @@ if args.contains("--check") {
 /// 页面 → 原生桥接：网页右上角「设置」键调起原生设置面板
 final class PageBridge: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.name == "miaomiaoOpenSettings" else { return }
-        DispatchQueue.main.async {
-            controller.openSettings()
+        if message.name == "miaomiaoOpenSettings" {
+            DispatchQueue.main.async { controller.openSettings() }
+        } else if message.name == "miaomiaoIgnoreCopy" {
+            // 网页复制按钮复制译文后, 标记剪贴板已处理, 不触发划词弹窗
+            monLastChange = NSPasteboard.general.changeCount
         }
     }
 }
