@@ -7,139 +7,186 @@
 <style>
   :root { --bg:#f6f1e7; --panel:#fffdf7; --text:#1d1d1f; --muted:#6e6e73; --accent:#ff3b30; --border:#e8dfcf; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system, "PingFang SC", sans-serif; padding:28px; max-width:860px; margin:0 auto; }
+  body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system, "PingFang SC", sans-serif; padding:26px; max-width:960px; margin:0 auto; }
   h1 { font-size:20px; display:flex; align-items:center; gap:10px; }
   h1 .logo { width:26px; height:26px; border-radius:7px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
-  p.desc { color:var(--muted); margin:8px 0 18px; }
+  p.desc { color:var(--muted); margin:6px 0 16px; }
+  .preview-zone { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:18px; }
+  .preview-zone h2 { font-size:15px; margin-bottom:8px; }
+  .switch { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .switch button { padding:6px 16px; border:1px solid var(--border); border-radius:20px; background:transparent; cursor:pointer; font-size:13px; color:var(--text); }
+  .switch button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .mocks { display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; }
+  .mock-title { font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .mock { border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,.18); }
+  .page-mock { width:330px; }
+  .page-mock .pm-brand { padding:10px 14px; font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px; }
+  .page-mock .pm-brand .dot { width:10px; height:10px; border-radius:3px; }
+  .page-mock .pm-body { padding:12px 14px 14px; }
+  .page-mock .pm-input { width:100%; border-radius:9px; border:1px solid; padding:8px 10px; font-size:13px; }
+  .page-mock .pm-btn { width:100%; margin-top:8px; border:none; border-radius:9px; padding:8px; font-size:13px; font-weight:600; }
+  .page-mock .pm-result { margin-top:10px; border-radius:9px; padding:10px 12px; font-size:13px; }
+  .page-mock .pm-foot { padding:0 14px 10px; font-size:10.5px; }
+  .pop-mock { width:250px; border-radius:14px; padding:12px 14px 12px; }
+  .pop-mock .om-orig { font-size:12.5px; font-weight:600; }
+  .pop-mock .om-trans { font-size:13px; margin-top:6px; }
+  .pop-mock .om-btns { display:flex; gap:6px; margin-top:12px; }
+  .pop-mock .om-btns button { border:none; border-radius:6px; padding:4px 10px; font-size:11px; color:#fff; }
   .theme { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
   .theme h2 { font-size:15px; margin-bottom:4px; }
   .theme .hint { color:var(--muted); font-size:12px; margin-bottom:12px; }
   .theme.fixed { opacity:.75; }
   .theme.fixed .row input { pointer-events:none; }
   .row { display:flex; align-items:center; gap:10px; padding:4px 0; }
-  .row label { width:110px; font-size:13px; color:var(--text); }
+  .row label { width:110px; font-size:13px; }
   .row input[type=color] { width:44px; height:28px; border:1px solid var(--border); border-radius:6px; background:none; padding:2px; cursor:pointer; }
   .row .hex { width:86px; font-family:ui-monospace, Menlo, monospace; font-size:12px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; }
-  .preview { margin-top:10px; border-radius:10px; padding:12px 14px; display:flex; gap:10px; align-items:center; font-size:13px; }
-  .preview .sw { width:90px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; flex:none; }
   .actions { display:flex; gap:10px; margin:18px 0 10px; }
-  button { padding:9px 18px; border:none; border-radius:9px; font-size:14px; cursor:pointer; background:var(--accent); color:#fff; }
-  button.secondary { background:#e5e0d2; color:var(--text); }
+  button.action { padding:9px 18px; border:none; border-radius:9px; font-size:14px; cursor:pointer; background:var(--accent); color:#fff; }
+  button.action.secondary { background:#e5e0d2; color:var(--text); }
   textarea { width:100%; height:150px; font-family:ui-monospace, Menlo, monospace; font-size:12px; border:1px solid var(--border); border-radius:10px; padding:10px; }
   .tip { color:var(--muted); font-size:12px; margin-top:8px; }
 </style>
 </head>
 <body>
 <h1><span class="logo">喵</span>miaomiao翻译器 · 主题设置器</h1>
-<p class="desc">给「青苹果」「香蕉」「汽水」三套主题挑颜色（苹果主题是默认参照，不可改）。挑好后点「复制配置」，把内容粘贴发给开发者即可。</p>
+<p class="desc">挑好颜色后，预览区会实时展示网页和划词弹窗的样子。满意后点「复制配置」发给开发者。</p>
+
+<div class="preview-zone">
+  <h2>👀 即时预览（切主题看效果）</h2>
+  <div class="switch" id="switch"></div>
+  <div class="mocks">
+    <div>
+      <div class="mock-title">翻译器主窗口（网页样式）</div>
+      <div class="mock page-mock" id="pageMock">
+        <div class="pm-brand" id="pmBrand"><span class="dot" id="pmBrandDot"></span><span id="pmBrandText">miaomiao翻译器</span></div>
+        <div class="pm-body" id="pmBody">
+          <input class="pm-input" id="pmInput" value="今天天气很好" readonly>
+          <button class="pm-btn" id="pmBtn">译</button>
+          <div class="pm-result" id="pmResult">It's a beautiful day.</div>
+        </div>
+        <div class="pm-foot" id="pmFoot">仅为神经网络训练的本地离线翻译器，并非专业翻译，仅供参考。</div>
+      </div>
+    </div>
+    <div>
+      <div class="mock-title">划词弹窗（弹窗样式）</div>
+      <div class="mock pop-mock" id="popMock">
+        <div class="om-orig" id="omOrig">hello world</div>
+        <div class="om-trans" id="omTrans">你好世界</div>
+        <div class="om-btns">
+          <button id="omCopy">复制译文</button>
+          <button id="omSet">设置</button>
+          <button id="omClose">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="theme fixed">
   <h2>🍎 苹果（默认，参照）</h2>
   <div class="hint">米黄奶油底 + 苹果红 · 固定不变</div>
-  <div class="preview" style="background:#f6f1e7; border:1px solid #e8dfcf; color:#1d1d1f;">
-    <div class="sw" style="background:#ff3b30; color:#fff;">强调色</div>
-    <span>页面：米黄奶油底 / 文字：近黑 / 弹窗：黑底红字米黄</span>
-  </div>
 </div>
-
 <div class="theme" data-theme="green-apple">
   <h2>🍏 青苹果</h2>
   <div class="hint">青苹果绿 + 米黄</div>
   <div class="rows"></div>
-  <div class="preview"><div class="sw p-bg">页面底</div><div class="sw p-accent">强调色</div><div class="sw pop-bg">弹窗底</div></div>
 </div>
-
 <div class="theme" data-theme="banana">
   <h2>🍌 香蕉</h2>
   <div class="hint">香蕉黄 + 米白</div>
   <div class="rows"></div>
-  <div class="preview"><div class="sw p-bg">页面底</div><div class="sw p-accent">强调色</div><div class="sw pop-bg">弹窗底</div></div>
 </div>
-
 <div class="theme" data-theme="soda">
   <h2>🥤 汽水</h2>
   <div class="hint">汽水蓝 + 玻璃感</div>
   <div class="rows"></div>
-  <div class="preview"><div class="sw p-bg">页面底</div><div class="sw p-accent">强调色</div><div class="sw pop-bg">弹窗底</div></div>
 </div>
 
 <div class="actions">
-  <button onclick="copyJson()">📋 复制配置</button>
-  <button class="secondary" onclick="saveFile()">💾 保存为文件（Chrome/Edge 可用）</button>
+  <button class="action" onclick="copyJson()">📋 复制配置</button>
+  <button class="action secondary" onclick="saveFile()">💾 保存为文件（Chrome/Edge 可用）</button>
 </div>
 <textarea id="out" readonly></textarea>
 <p class="tip">复制内容形如 {"green-apple":{...},"banana":{...},"soda":{...}} —— 粘贴到对话里发给开发者即可。</p>
 
 <script>
-// 每个主题可调的 10 个颜色：页面 5 个 + 弹窗 5 个
 const FIELDS = [
-  ['pageBg',    '页面背景色'],
-  ['pagePanel', '页面面板色'],
-  ['pageText',  '页面文字色'],
-  ['pageMuted', '页面次要文字'],
-  ['pageAccent','页面强调色'],
-  ['popupBg',   '弹窗背景色'],
-  ['popupOrig', '弹窗原文色'],
-  ['popupTrans','弹窗译文色'],
-  ['popupCopy', '弹窗复制键'],
-  ['popupClose','弹窗关闭键'],
+  ['pageBg','页面背景色'],['pagePanel','页面面板色'],['pageText','页面文字色'],
+  ['pageMuted','页面次要文字'],['pageAccent','页面强调色'],
+  ['popupBg','弹窗背景色'],['popupOrig','弹窗原文色'],['popupTrans','弹窗译文色'],
+  ['popupCopy','弹窗复制键'],['popupClose','弹窗关闭键'],
 ];
-// 默认值（当前代码里的配色）
+const APPLE = { pageBg:'#f6f1e7', pagePanel:'#fffdf7', pageText:'#1d1d1f', pageMuted:'#6e6e73', pageAccent:'#ff3b30', popupBg:'#000000', popupOrig:'#ff5648', popupTrans:'#fbf6cf', popupCopy:'#fbf6c6', popupClose:'#ffffff' };
 const DEFAULTS = {
   'green-apple': { pageBg:'#f2f6e4', pagePanel:'#fbfdf2', pageText:'#20290f', pageMuted:'#66754c', pageAccent:'#7fb84a', popupBg:'#1a2416', popupOrig:'#8fd460', popupTrans:'#f0f6e0', popupCopy:'#e4efd0', popupClose:'#ffffff' },
   'banana':      { pageBg:'#fbf3dc', pagePanel:'#fffdf4', pageText:'#3a2f0c', pageMuted:'#8a7a4a', pageAccent:'#f5c400', popupBg:'#2a2410', popupOrig:'#ffd54a', popupTrans:'#fdf6de', popupCopy:'#f6ecc4', popupClose:'#ffffff' },
   'soda':        { pageBg:'#e7f2f6', pagePanel:'#f4fafc', pageText:'#0e2f3a', pageMuted:'#5f7f8c', pageAccent:'#3aa9c9', popupBg:'#0e2730', popupOrig:'#5cc4e0', popupTrans:'#e0f2f9', popupCopy:'#cceaf3', popupClose:'#ffffff' },
 };
-
 const state = JSON.parse(JSON.stringify(DEFAULTS));
+const THEME_ORDER = ['apple','green-apple','banana','soda'];
+let current = 'apple';
+
+const sw = document.getElementById('switch');
+THEME_ORDER.forEach(id => {
+  const b = document.createElement('button');
+  b.textContent = { apple:'🍎 苹果', 'green-apple':'🍏 青苹果', banana:'🍌 香蕉', soda:'🥤 汽水' }[id];
+  b.onclick = () => { current = id; renderSwitch(); renderPreview(); };
+  sw.appendChild(b);
+});
+function renderSwitch(){ [...sw.children].forEach((b,i)=>b.classList.toggle('on',THEME_ORDER[i]===current)); }
 
 document.querySelectorAll('.theme[data-theme]').forEach(t => {
   const id = t.dataset.theme;
   const rows = t.querySelector('.rows');
-  FIELDS.forEach(([key, label]) => {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const lab = document.createElement('label');
-    lab.textContent = label;
-    const color = document.createElement('input');
-    color.type = 'color';
-    color.value = state[id][key];
-    const hex = document.createElement('input');
-    hex.className = 'hex';
-    hex.value = state[id][key];
-    const sync = v => { color.value = v; hex.value = v; state[id][key] = v; renderPreview(t, id); };
-    color.addEventListener('input', () => sync(color.value));
-    hex.addEventListener('change', () => { if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) sync(hex.value); });
-    row.append(lab, color, hex);
-    rows.appendChild(row);
+  FIELDS.forEach(([key,label]) => {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.textContent = label;
+    const color = document.createElement('input'); color.type = 'color'; color.value = state[id][key];
+    const hex = document.createElement('input'); hex.className = 'hex'; hex.value = state[id][key];
+    const sync = v => { color.value = v; hex.value = v; state[id][key] = v; if (current===id) renderPreview(); };
+    color.addEventListener('input', ()=>sync(color.value));
+    hex.addEventListener('change', ()=>{ if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) sync(hex.value); });
+    row.append(lab,color,hex); rows.appendChild(row);
   });
 });
 
-function renderPreview(t, id) {
-  const c = state[id];
-  const sws = t.querySelectorAll('.sw');
-  sws[0].style.background = c.pageBg; sws[0].style.color = c.pageText;
-  sws[1].style.background = c.pageAccent; sws[1].style.color = '#fff';
-  sws[2].style.background = c.popupBg; sws[2].style.color = c.popupTrans;
+function renderPreview(){
+  const c = current==='apple' ? APPLE : state[current];
+  const pm = document.getElementById('pageMock');
+  pm.style.background = c.pageBg; pm.style.color = c.pageText;
+  document.getElementById('pmBrand').style.background = c.pageAccent;
+  document.getElementById('pmBrand').style.color = '#fff';
+  document.getElementById('pmBrandDot').style.background = 'rgba(255,255,255,.85)';
+  document.getElementById('pmBody').style.background = c.pageBg;
+  const input = document.getElementById('pmInput');
+  input.style.background = c.pagePanel; input.style.color = c.pageText; input.style.borderColor = c.pageAccent;
+  const btn = document.getElementById('pmBtn');
+  btn.style.background = c.pageAccent; btn.style.color = '#fff';
+  const result = document.getElementById('pmResult');
+  result.style.background = c.pagePanel; result.style.color = c.pageText;
+  document.getElementById('pmFoot').style.color = c.pageMuted;
+  const pop = document.getElementById('popMock');
+  pop.style.background = c.popupBg;
+  document.getElementById('omOrig').style.color = c.popupOrig;
+  document.getElementById('omTrans').style.color = c.popupTrans;
+  document.getElementById('omCopy').style.background = c.popupCopy;
+  document.getElementById('omSet').style.background = c.popupCopy;
+  document.getElementById('omClose').style.background = c.popupClose;
 }
-document.querySelectorAll('.theme[data-theme]').forEach(t => renderPreview(t, t.dataset.theme));
+renderSwitch(); renderPreview();
 
-function buildJson() {
-  return JSON.stringify(state, null, 2);
-}
-function copyJson() {
+function buildJson(){ return JSON.stringify(state,null,2); }
+function copyJson(){
   const out = document.getElementById('out');
-  out.value = buildJson();
-  out.select();
+  out.value = buildJson(); out.select();
   try { document.execCommand('copy'); alert('已复制！请粘贴发给开发者'); }
   catch { alert('请手动复制下面的内容'); }
 }
-function saveFile() {
-  const blob = new Blob([buildJson()], { type: 'application/json' });
+function saveFile(){
+  const blob = new Blob([buildJson()], {type:'application/json'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = '主题配置.json';
-  a.click();
+  a.href = URL.createObjectURL(blob); a.download = '主题配置.json'; a.click();
   alert('已下载 主题配置.json，把它放到项目文件夹或直接发给我');
 }
 </script>
