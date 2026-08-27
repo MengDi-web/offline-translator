@@ -61,6 +61,49 @@ func contrastingTextColor(_ c: NSColor) -> NSColor {
 }
 
 // MARK: - 设置（UserDefaults 持久化）
+// MARK: - 主题（页面 + 弹窗统一配色）
+enum Theme: String, CaseIterable {
+    case apple = "apple"            // 苹果：米黄奶油底 + 苹果红
+    case greenApple = "green-apple" // 青苹果：青苹果绿 + 米黄
+    case banana = "banana"          // 香蕉：香蕉黄 + 米白
+    case soda = "soda"              // 汽水：汽水蓝 + 玻璃感
+
+    var name: String {
+        switch self {
+        case .apple: return "苹果"
+        case .greenApple: return "青苹果"
+        case .banana: return "香蕉"
+        case .soda: return "汽水"
+        }
+    }
+    // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
+    var popupBg: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0x000000)
+        case .greenApple: return hexToColor("", fallback: 0x1A2416)
+        case .banana: return hexToColor("", fallback: 0x2A2410)
+        case .soda: return hexToColor("", fallback: 0x0E2730) } }
+    var popupOrig: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0xFF5648)
+        case .greenApple: return hexToColor("", fallback: 0x8FD460)
+        case .banana: return hexToColor("", fallback: 0xFFD54A)
+        case .soda: return hexToColor("", fallback: 0x5CC4E0) } }
+    var popupTrans: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0xFBF6CF)
+        case .greenApple: return hexToColor("", fallback: 0xF0F6E0)
+        case .banana: return hexToColor("", fallback: 0xFDF6DE)
+        case .soda: return hexToColor("", fallback: 0xE0F2F9) } }
+    var popupCopy: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0xFBF6C6)
+        case .greenApple: return hexToColor("", fallback: 0xE4EFD0)
+        case .banana: return hexToColor("", fallback: 0xF6ECC4)
+        case .soda: return hexToColor("", fallback: 0xCCEAF3) } }
+    var popupClose: NSColor { switch self {
+        case .apple: return hexToColor("", fallback: 0xFFFFFF)
+        case .greenApple: return hexToColor("", fallback: 0xFFFFFF)
+        case .banana: return hexToColor("", fallback: 0xFFFFFF)
+        case .soda: return hexToColor("", fallback: 0xFFFFFF) } }
+}
+
 enum Settings {
     static let widthKey = "popupWidth"
     static let origFontKey = "popupOrigFontSize"
@@ -74,27 +117,27 @@ enum Settings {
     static let radiusKey = "popupRadius"
     static let mainWidthKey = "mainWinWidth"
     static let mainHeightKey = "mainWinHeight"
-    static let mainThemeKey = "mainWinTheme"
+    static let themeKey = "theme"
 
     static var width: CGFloat { CGFloat(UserDefaults.standard.double(forKey: widthKey) != 0 ? UserDefaults.standard.double(forKey: widthKey) : 301) }
     static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 15) }
     static var transFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: transFontKey) != 0 ? UserDefaults.standard.double(forKey: transFontKey) : 16) }
     static var opacity: CGFloat { UserDefaults.standard.double(forKey: opacityKey) != 0 ? CGFloat(UserDefaults.standard.double(forKey: opacityKey)) : 0.75 }
-    // 默认苹果配色（与网页一致）：米黄奶油底 + 苹果红
-    static var bgColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: bgColorKey) ?? "", fallback: 0x000000) }
-    static var copyColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: copyColorKey) ?? "", fallback: 0xFBF6C6) }
-    static var closeColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: closeColorKey) ?? "", fallback: 0xFFFFFF) }
-    static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFF5648) }
-    static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xFBF6CF) }
     static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 16) }
     static var mainWidth: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainWidthKey) != 0 ? UserDefaults.standard.double(forKey: mainWidthKey) : 1100) }
     static var mainHeight: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainHeightKey) != 0 ? UserDefaults.standard.double(forKey: mainHeightKey) : 740) }
-    static var mainTheme: String { UserDefaults.standard.string(forKey: mainThemeKey) ?? "light" }
+    static var theme: Theme { Theme(rawValue: UserDefaults.standard.string(forKey: themeKey) ?? "") ?? .apple }
+    // 弹窗配色统一跟随主题（不再单独自定义颜色）
+    static var bgColor: NSColor { theme.popupBg }
+    static var origColor: NSColor { theme.popupOrig }
+    static var transColor: NSColor { theme.popupTrans }
+    static var copyColor: NSColor { theme.popupCopy }
+    static var closeColor: NSColor { theme.popupClose }
 
     static func saveMain(width: CGFloat, height: CGFloat, theme: String) {
         UserDefaults.standard.set(Double(width), forKey: mainWidthKey)
         UserDefaults.standard.set(Double(height), forKey: mainHeightKey)
-        UserDefaults.standard.set(theme, forKey: mainThemeKey)
+        UserDefaults.standard.set(theme, forKey: themeKey)
     }
 
     static let settingsVersionKey = "settingsVersion"
@@ -112,19 +155,12 @@ enum Settings {
         }
     }
 
-    static func save(width: CGFloat, radius: CGFloat, origFontSize: CGFloat, transFontSize: CGFloat, opacity: CGFloat,
-                     bgColor: NSColor, copyColor: NSColor, closeColor: NSColor,
-                     origColor: NSColor, transColor: NSColor) {
+    static func save(width: CGFloat, radius: CGFloat, origFontSize: CGFloat, transFontSize: CGFloat, opacity: CGFloat) {
         UserDefaults.standard.set(Double(width), forKey: widthKey)
         UserDefaults.standard.set(Double(radius), forKey: radiusKey)
         UserDefaults.standard.set(Double(origFontSize), forKey: origFontKey)
         UserDefaults.standard.set(Double(transFontSize), forKey: transFontKey)
         UserDefaults.standard.set(Double(opacity), forKey: opacityKey)
-        UserDefaults.standard.set(colorToHex(bgColor), forKey: bgColorKey)
-        UserDefaults.standard.set(colorToHex(copyColor), forKey: copyColorKey)
-        UserDefaults.standard.set(colorToHex(closeColor), forKey: closeColorKey)
-        UserDefaults.standard.set(colorToHex(origColor), forKey: origColorKey)
-        UserDefaults.standard.set(colorToHex(transColor), forKey: transColorKey)
     }
     static func reset() {
         UserDefaults.standard.removeObject(forKey: widthKey)
@@ -132,11 +168,9 @@ enum Settings {
         UserDefaults.standard.removeObject(forKey: origFontKey)
         UserDefaults.standard.removeObject(forKey: transFontKey)
         UserDefaults.standard.removeObject(forKey: opacityKey)
-        UserDefaults.standard.removeObject(forKey: bgColorKey)
-        UserDefaults.standard.removeObject(forKey: copyColorKey)
-        UserDefaults.standard.removeObject(forKey: closeColorKey)
-        UserDefaults.standard.removeObject(forKey: origColorKey)
-        UserDefaults.standard.removeObject(forKey: transColorKey)
+        UserDefaults.standard.removeObject(forKey: mainWidthKey)
+        UserDefaults.standard.removeObject(forKey: mainHeightKey)
+        UserDefaults.standard.removeObject(forKey: themeKey)
     }
 }
 
@@ -412,12 +446,7 @@ final class SettingsPanel: NSPanel {
     let opacitySlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
     let mainWidthSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
     let mainHeightSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let themeControl = NSSegmentedControl(labels: ["浅色", "深色"], trackingMode: .selectOne, target: nil, action: nil)
-    let origColorWell = NSColorWell()
-    let transColorWell = NSColorWell()
-    let bgWell = NSColorWell()
-    let copyWell = NSColorWell()
-    let closeWell = NSColorWell()
+    let themeControl = NSSegmentedControl(labels: Theme.allCases.map { $0.name }, trackingMode: .selectOne, target: nil, action: nil)
     let widthLabel = NSTextField(labelWithString: "")
     let radiusLabel = NSTextField(labelWithString: "")
     let origFontLabel = NSTextField(labelWithString: "")
@@ -456,18 +485,9 @@ final class SettingsPanel: NSPanel {
             sl.isEnabled = true
             sl.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         }
-        themeControl.selectedSegment = Settings.mainTheme == "dark" ? 1 : 0
+        themeControl.selectedSegment = Settings.theme == .apple ? 0 : (Settings.theme == .greenApple ? 1 : (Settings.theme == .banana ? 2 : 3))
         themeControl.target = self
         themeControl.action = #selector(changed)
-        for w in [origColorWell, transColorWell, bgWell, copyWell, closeWell] {
-            w.target = self; w.action = #selector(changed)
-            w.widthAnchor.constraint(equalToConstant: 48).isActive = true
-        }
-        origColorWell.color = Settings.origColor
-        transColorWell.color = Settings.transColor
-        bgWell.color = Settings.bgColor
-        copyWell.color = Settings.copyColor
-        closeWell.color = Settings.closeColor
 
         func sliderRow(_ t: String, _ slider: NSSlider, _ label: NSTextField) -> NSStackView {
             let tt = NSTextField(labelWithString: t)
@@ -481,16 +501,8 @@ final class SettingsPanel: NSPanel {
             row.spacing = 8
             return row
         }
-        func colorRow(_ t: String, _ well: NSColorWell) -> NSStackView {
-            let tt = NSTextField(labelWithString: t)
-            tt.font = NSFont.systemFont(ofSize: 12)
-            let row = NSStackView(views: [tt, well])
-            row.orientation = .horizontal
-            row.spacing = 8
-            return row
-        }
         func themeRow() -> NSStackView {
-            let tt = NSTextField(labelWithString: "页面主题")
+            let tt = NSTextField(labelWithString: "主题配色")
             tt.font = NSFont.systemFont(ofSize: 12)
             let row = NSStackView(views: [tt, themeControl])
             row.orientation = .horizontal
@@ -514,31 +526,18 @@ final class SettingsPanel: NSPanel {
             return (header, detail, key)
         }
         sections = [
-            makeSection("1. 弹窗形式", [
-                sliderRow("弹窗宽度", widthSlider, widthLabel),
-                sliderRow("圆角弧度", radiusSlider, radiusLabel),
-            ], key: "secShape"),
-            makeSection("2. 字号", [
-                sliderRow("划词字号", origFontSlider, origFontLabel),
-                sliderRow("翻译字号", transFontSlider, transFontLabel),
-            ], key: "secFont"),
-            makeSection("3. 字体颜色", [
-                colorRow("划词字体", origColorWell),
-                colorRow("翻译字体", transColorWell),
-            ], key: "secColor"),
-            makeSection("4. 背景", [
-                colorRow("背景颜色", bgWell),
-                sliderRow("背景透明度", opacitySlider, opacityLabel),
-            ], key: "secBg"),
-            makeSection("5. 其它", [
-                colorRow("复制键", copyWell),
-                colorRow("关闭键", closeWell),
-            ], key: "secOther"),
-            makeSection("6. 主页面", [
+            makeSection("1. 主题（页面与弹窗统一）", [
+                themeRow(),
                 sliderRow("窗口宽度", mainWidthSlider, mainWidthLabel),
                 sliderRow("窗口高度", mainHeightSlider, mainHeightLabel),
-                themeRow(),
-            ], key: "secMain"),
+            ], key: "secTheme"),
+            makeSection("2. 弹窗自定义", [
+                sliderRow("弹窗宽度", widthSlider, widthLabel),
+                sliderRow("圆角弧度", radiusSlider, radiusLabel),
+                sliderRow("划词字号", origFontSlider, origFontLabel),
+                sliderRow("翻译字号", transFontSlider, transFontLabel),
+                sliderRow("背景透明度", opacitySlider, opacityLabel),
+            ], key: "secPopup"),
         ]
 
         let resetBtn = NSButton(title: "恢复默认", target: self, action: #selector(resetTapped))
@@ -605,11 +604,10 @@ final class SettingsPanel: NSPanel {
     @objc func confirmTapped() {
         Settings.save(width: CGFloat(widthSlider.doubleValue), radius: CGFloat(radiusSlider.doubleValue),
                       origFontSize: CGFloat(origFontSlider.doubleValue), transFontSize: CGFloat(transFontSlider.doubleValue),
-                      opacity: CGFloat(opacitySlider.doubleValue),
-                      bgColor: bgWell.color, copyColor: copyWell.color, closeColor: closeWell.color,
-                      origColor: origColorWell.color, transColor: transColorWell.color)
+                      opacity: CGFloat(opacitySlider.doubleValue))
+        let theme = Theme.allCases[max(0, min(themeControl.selectedSegment, Theme.allCases.count - 1))]
         Settings.saveMain(width: CGFloat(mainWidthSlider.doubleValue), height: CGFloat(mainHeightSlider.doubleValue),
-                          theme: themeControl.selectedSegment == 1 ? "dark" : "light")
+                          theme: theme.rawValue)
         applyToPopup()          // 弹窗形式立即更新
         applyMainWindow()       // 主窗口大小/主题立即更新
         self.orderOut(nil)      // 关闭设置窗口
@@ -622,8 +620,9 @@ final class SettingsPanel: NSPanel {
         origFontSlider.doubleValue = Double(Settings.origFontSize)
         transFontSlider.doubleValue = Double(Settings.transFontSize)
         opacitySlider.doubleValue = Double(Settings.opacity)
-        origColorWell.color = Settings.origColor; transColorWell.color = Settings.transColor
-        bgWell.color = Settings.bgColor; copyWell.color = Settings.copyColor; closeWell.color = Settings.closeColor
+        mainWidthSlider.doubleValue = Double(Settings.mainWidth)
+        mainHeightSlider.doubleValue = Double(Settings.mainHeight)
+        themeControl.selectedSegment = 0
         refreshLabels()
     }
     func refreshLabels() {
@@ -1005,9 +1004,10 @@ if appMain {
 /// 主窗口（--app-main 模式）：内嵌 WebView 显示翻译页面，与浏览器无关
 func setupMainWindow() {
     let config = WKWebViewConfiguration()
-    // 深色主题：页面加载前注入标记，网页 CSS 响应 data-theme
-    if Settings.mainTheme == "dark" {
-        let script = WKUserScript(source: "document.documentElement.setAttribute('data-theme','dark')",
+    // 主题：页面加载前注入标记，网页 CSS 按 data-theme 应用对应配色
+    let themeId = Settings.theme.rawValue
+    if themeId != "apple" {
+        let script = WKUserScript(source: "document.documentElement.setAttribute('data-theme','\(themeId)')",
                                   injectionTime: .atDocumentStart, forMainFrameOnly: true)
         config.userContentController.addUserScript(script)
     }
@@ -1037,7 +1037,7 @@ func applyMainWindow() {
         w.setFrame(frame, display: true)
     }
     if let web = mainWebView {
-        web.evaluateJavaScript("document.documentElement.setAttribute('data-theme','\(Settings.mainTheme)')", completionHandler: nil)
+        web.evaluateJavaScript("document.documentElement.setAttribute('data-theme','\(Settings.theme.rawValue)')", completionHandler: nil)
     }
 }
 

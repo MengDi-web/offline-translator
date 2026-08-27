@@ -23,21 +23,30 @@
     --shadow: 0 8px 24px rgba(120, 100, 60, .10), 0 2px 6px rgba(120, 100, 60, .06);
     --radius: 16px;
   }
-  /* 深色主题（由 app 设置切换：<html data-theme="dark">） */
-  html[data-theme="dark"] {
-    --bg: #1c1c1e;
-    --panel: #2c2c2e;
-    --panel2: #3a3a3c;
-    --border: #48484a;
-    --border-strong: #5a5a5e;
-    --text: #f5f5f7;
-    --muted: #98989d;
-    --accent: #ff453a;
-    --accent-deep: #ff6b61;
-    --accent-soft: rgba(255, 69, 58, .16);
-    --warn: #ff9f0a;
-    --danger: #ff6b61;
-    --shadow: 0 8px 24px rgba(0, 0, 0, .4), 0 2px 6px rgba(0, 0, 0, .3);
+  /* 主题配色（由 app 设置切换：<html data-theme="...">，与划词弹窗统一） */
+  html[data-theme="green-apple"] {   /* 青苹果：青苹果绿 + 米黄 */
+    --bg: #f2f6e4; --panel: #fbfdf2; --panel2: #f0f5dc;
+    --border: #dbe5c2; --border-strong: #c6d4a4;
+    --text: #20290f; --muted: #66754c;
+    --accent: #7fb84a; --accent-deep: #5f9632; --accent-soft: rgba(127, 184, 74, .14);
+    --warn: #9a7b1e; --danger: #c0392b;
+    --shadow: 0 8px 24px rgba(80, 110, 40, .12), 0 2px 6px rgba(80, 110, 40, .07);
+  }
+  html[data-theme="banana"] {        /* 香蕉：香蕉黄 + 米白 */
+    --bg: #fbf3dc; --panel: #fffdf4; --panel2: #f9efce;
+    --border: #ead9a8; --border-strong: #d9c184;
+    --text: #3a2f0c; --muted: #8a7a4a;
+    --accent: #f5c400; --accent-deep: #d9a900; --accent-soft: rgba(245, 196, 0, .16);
+    --warn: #9a6f00; --danger: #c0392b;
+    --shadow: 0 8px 24px rgba(150, 120, 30, .12), 0 2px 6px rgba(150, 120, 30, .07);
+  }
+  html[data-theme="soda"] {          /* 汽水：汽水蓝 + 玻璃感 */
+    --bg: #e7f2f6; --panel: #f4fafc; --panel2: #e9f3f7;
+    --border: #c4dde6; --border-strong: #a5ccd9;
+    --text: #0e2f3a; --muted: #5f7f8c;
+    --accent: #3aa9c9; --accent-deep: #238ca8; --accent-soft: rgba(58, 169, 201, .14);
+    --warn: #1e7a96; --danger: #c0392b;
+    --shadow: 0 8px 24px rgba(40, 120, 150, .14), 0 2px 6px rgba(40, 120, 150, .08);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
