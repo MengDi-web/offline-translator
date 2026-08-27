@@ -493,13 +493,21 @@ final class TintedSliderCell: NSSliderCell {
 }
 
 final class SettingsPanel: NSPanel {
-    let widthSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let radiusSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let origFontSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let transFontSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let opacitySlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let mainWidthSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
-    let mainHeightSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
+    /// 创建滑块：从出生就带主题色 Cell，避免中途替换导致数值/拖动异常
+    static func makeSlider() -> NSSlider {
+        let s = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
+        let cell = TintedSliderCell()
+        cell.controlView = s
+        s.cell = cell
+        return s
+    }
+    let widthSlider = SettingsPanel.makeSlider()
+    let radiusSlider = SettingsPanel.makeSlider()
+    let origFontSlider = SettingsPanel.makeSlider()
+    let transFontSlider = SettingsPanel.makeSlider()
+    let opacitySlider = SettingsPanel.makeSlider()
+    let mainWidthSlider = SettingsPanel.makeSlider()
+    let mainHeightSlider = SettingsPanel.makeSlider()
     let themeControl = NSSegmentedControl(labels: Theme.allCases.map { $0.name }, trackingMode: .selectOne, target: nil, action: nil)
     let widthLabel = NSTextField(labelWithString: "")
     let radiusLabel = NSTextField(labelWithString: "")
@@ -658,23 +666,12 @@ final class SettingsPanel: NSPanel {
         refreshLabels()
         applyThemeTint(staged: true)   // 滑块颜色跟随当前选中的主题
     }
-    /// 设置面板滑块着色为当前主题强调色
+    /// 设置面板滑块着色为当前主题强调色（滑块自创建即带 TintedSliderCell）
     func applyThemeTint(staged: Bool) {
         let theme = staged ? Theme.allCases[max(0, min(themeControl.selectedSegment, Theme.allCases.count - 1))] : Settings.theme
         let c = theme.accent
         for sl in [widthSlider, radiusSlider, origFontSlider, transFontSlider, opacitySlider, mainWidthSlider, mainHeightSlider] {
-            if let cell = sl.cell as? TintedSliderCell {
-                cell.tint = c
-            } else {
-                let cell = TintedSliderCell()
-                cell.tint = c
-                // 换自定义 Cell 时必须保留滑块的取值范围与当前值，否则会归零
-                cell.minValue = sl.minValue
-                cell.maxValue = sl.maxValue
-                cell.doubleValue = sl.doubleValue
-                cell.controlView = sl
-                sl.cell = cell
-            }
+            (sl.cell as? TintedSliderCell)?.tint = c
             sl.needsDisplay = true
         }
     }
