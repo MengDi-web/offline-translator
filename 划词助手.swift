@@ -10,6 +10,7 @@
 
 import Cocoa
 import ApplicationServices
+import WebKit
 
 // MARK: - 单实例锁（防止重复启动 → 双弹窗 / 循环翻译）
 var singletonLockFD: Int32 = -1
@@ -879,11 +880,11 @@ if args.contains("--check") {
 }
 
 final class AppController: NSObject, NSApplicationDelegate {
-    // 作为应用主进程时：点击 Dock 图标 → 重新打开/前置浏览器页面
+    // 作为应用主进程时：点击 Dock 图标 → 前置自己的窗口（内嵌翻译页面）
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        // 等待应用激活完成后再打开浏览器：立即 open 会被激活过程抑制，导致要点两次
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            openBrowserPage()
+        if let w = mainWindow {
+            w.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
         return true
     }
@@ -894,8 +895,8 @@ final class AppController: NSObject, NSApplicationDelegate {
         p.arguments = ["-f", "server.js --port 6688"]
         try? p.run()
     }
-    @objc func openBrowserPageAction() {
-        openBrowserPage()
+    @objc func reloadPage() {
+        mainWebView?.reload()
     }
     @objc func openSettings() {
         settingsPanel.refreshLabels()
@@ -932,29 +933,71 @@ popupPanel = PopupPanel()
 settingsPanel = SettingsPanel()
 let controller = AppController()
 
-// 作为应用主进程：注册代理（点击图标重新打开网页 / 退出清理服务）+ 应用主菜单
+// 作为应用主进程：注册代理 + 应用主菜单；窗口用内嵌 WebView 显示翻译页面
+var mainWindow: NSWindow?
+var mainWebView: WKWebView?
+
 if appMain {
     app.delegate = controller
     let mainMenu = NSMenu()
     let appItem = NSMenuItem()
     mainMenu.addItem(appItem)
     let appMenu = NSMenu()
-    let openItem = NSMenuItem(title: "打开翻译页面", action: #selector(AppController.openBrowserPageAction), keyEquivalent: "o")
+    let reloadItem = NSMenuItem(title: "重新加载页面", action: #selector(AppController.reloadPage), keyEquivalent: "r")
+    reloadItem.target = controller
     let quitItem = NSMenuItem(title: "退出 miaomiao翻译器", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-    openItem.target = controller
-    appMenu.addItem(openItem)
+    appMenu.addItem(reloadItem)
     appMenu.addItem(.separator())
     appMenu.addItem(quitItem)
     appItem.submenu = appMenu
+    // 编辑菜单：WebView 内复制/粘贴/全选快捷键需要
+    let editItem = NSMenuItem()
+    mainMenu.addItem(editItem)
+    let editMenu = NSMenu(title: "编辑")
+    editMenu.addItem(withTitle: "复制", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+    editMenu.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+    editMenu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+    editItem.submenu = editMenu
     app.mainMenu = mainMenu
+}
+
+/// 主窗口（--app-main 模式）：内嵌 WebView 显示翻译页面，与浏览器无关
+func setupMainWindow() {
+    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 740),
+                          styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                          backing: .buffered, defer: false)
+    window.title = "miaomiao翻译器"
+    window.center()
+    window.setFrameAutosaveName("MiaomiaoMainWindow")
+    window.isReleasedWhenClosed = false
+    let web = WKWebView(frame: window.contentView?.bounds ?? .zero)
+    web.autoresizingMask = [.width, .height]
+    window.contentView?.addSubview(web)
+    mainWindow = window
+    mainWebView = web
+    // 服务可能还在加载模型：轮询就绪后加载页面
+    loadPageWithRetry(web, tries: 15)
+    window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
 }
 
-/// 打开翻译网页（浏览器）
-func openBrowserPage() {
-    if let url = URL(string: "http://127.0.0.1:6688") {
-        NSWorkspace.shared.open(url)
-    }
+/// 服务就绪后加载页面（最多重试 tries 次，每次间隔 1 秒）
+func loadPageWithRetry(_ web: WKWebView, tries: Int) {
+    let url = URL(string: "http://127.0.0.1:6688")!
+    var req = URLRequest(url: url)
+    req.timeoutInterval = 2
+    URLSession.shared.dataTask(with: req) { _, resp, _ in
+        let ok = (resp as? HTTPURLResponse)?.statusCode == 200
+        DispatchQueue.main.async {
+            if ok {
+                web.load(URLRequest(url: url))
+            } else if tries > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    loadPageWithRetry(web, tries: tries - 1)
+                }
+            }
+        }
+    }.resume()
 }
 
 // 菜单栏图标（设置按钮）
@@ -978,5 +1021,6 @@ statusItem.menu = menu
 
 debugLog("启动\n")
 ensureServer()          // 服务不在线时自动拉起（脱离终端也可用）
+if appMain { setupMainWindow() }   // 应用主进程：弹出内嵌翻译窗口
 startMonitor()
 app.run()

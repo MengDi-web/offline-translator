@@ -30,9 +30,8 @@ if ! curl -s -m 2 "http://127.0.0.1:6688/api/stats" >/dev/null 2>&1; then
 fi
 sleep 2
 
-# 清理可能残留的旧助手，再打开网页
+# 清理可能残留的旧助手（主窗口由助手内的 WebView 显示，不另开浏览器）
 pkill -f "$HELPER" 2>/dev/null
-open "http://127.0.0.1:6688"
 
 # 主进程交给划词助手（--app-main 常驻，处理菜单栏/退出/点击前置）
 exec "$HELPER" --app-main
