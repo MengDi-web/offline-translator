@@ -242,11 +242,16 @@ const server = http.createServer(async (req, res) => {
 
       const dictResult = translate.translate(q, dir);
 
-      // 模式决策：auto → 整句走神经、词/短语走词典；nmt → 全部走神经；dict → 全部走词典
+      // 模式决策：单个词 / 词典收录的固定搭配 → 词典；其余全部走神经
+      // （kind: word=词典整串命中, unknown=未收录单词(给联想), mixed=中英混合, error=无法识别）
       let useNmt = false;
       if (mode === 'nmt') useNmt = true;
-      else if (mode === 'auto') useNmt = isSentence(q, effDir);
-      else useNmt = false;
+      else if (mode === 'auto') {
+        const k = dictResult.kind;
+        const dictEligible = k === 'word' || k === 'unknown' || k === 'mixed' || !k || dictResult.error;
+        useNmt = !dictEligible;
+      }
+      // 其它为 dict → 保持 false
 
       if (useNmt && (effDir === 'zh2en' || effDir === 'en2zh')) {
         const nr = await safeNmtTranslate(q, effDir);
