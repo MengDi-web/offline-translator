@@ -999,6 +999,22 @@ final class AppController: NSObject, NSApplicationDelegate {
     @objc func reloadPage() {
         mainWebView?.reload()
     }
+    @objc func aboutTapped() {
+        let a = NSAlert()
+        a.messageText = "miaomiao翻译器"
+        a.informativeText = "版本 1.1\n完全离线的中英互译工具\n词典 + 本地神经翻译双引擎\nMIT License"
+        a.addButton(withTitle: "好")
+        a.runModal()
+    }
+    @objc func zoomIn() {
+        if let w = mainWebView { w.pageZoom = min(2.0, w.pageZoom + 0.1) }
+    }
+    @objc func zoomOut() {
+        if let w = mainWebView { w.pageZoom = max(0.5, w.pageZoom - 0.1) }
+    }
+    @objc func zoomActual() {
+        mainWebView?.pageZoom = 1.0
+    }
     @objc func openSettings() {
         settingsPanel.refreshLabels()
         NSApp.activate(ignoringOtherApps: true)
@@ -1014,6 +1030,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     @objc func togglePause() {
         paused.toggle()
         (statusItem.menu?.items[1])?.title = paused ? "继续" : "暂停"
+        menuPauseItem?.title = paused ? "继续划词" : "暂停划词"
     }
     @objc func quitApp() {
         NSApplication.shared.terminate(nil)
@@ -1036,6 +1053,7 @@ let controller = AppController()
 
 // 作为应用主进程：注册代理 + 应用主菜单；窗口用内嵌 WebView 显示翻译页面
 var mainWindow: NSWindow?
+var menuPauseItem: NSMenuItem?
 var mainWebView: WKWebView?
 
 if appMain {
@@ -1044,14 +1062,18 @@ if appMain {
     let appItem = NSMenuItem()
     mainMenu.addItem(appItem)
     let appMenu = NSMenu()
+    let aboutItem = NSMenuItem(title: "关于 miaomiao翻译器", action: #selector(AppController.aboutTapped), keyEquivalent: "")
+    aboutItem.target = controller
     let reloadItem = NSMenuItem(title: "重新加载页面", action: #selector(AppController.reloadPage), keyEquivalent: "r")
     reloadItem.target = controller
     let quitItem = NSMenuItem(title: "退出 miaomiao翻译器", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    appMenu.addItem(aboutItem)
+    appMenu.addItem(.separator())
     appMenu.addItem(reloadItem)
     appMenu.addItem(.separator())
     appMenu.addItem(quitItem)
     appItem.submenu = appMenu
-    // 「设置…」作为独立的顶层菜单项，放在「编辑」旁边（Cmd+,）
+    // 「设置…」作为独立的顶层菜单项（Cmd+,）
     let settingsTop = NSMenuItem(title: "设置…", action: #selector(AppController.openSettings), keyEquivalent: ",")
     settingsTop.target = controller
     mainMenu.addItem(settingsTop)
@@ -1063,6 +1085,45 @@ if appMain {
     editMenu.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
     editMenu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
     editItem.submenu = editMenu
+    // 视图菜单：页面缩放
+    let viewItem = NSMenuItem()
+    mainMenu.addItem(viewItem)
+    let viewMenu = NSMenu(title: "视图")
+    let vReload = NSMenuItem(title: "重新加载页面", action: #selector(AppController.reloadPage), keyEquivalent: "r")
+    vReload.target = controller
+    let zIn = NSMenuItem(title: "放大", action: #selector(AppController.zoomIn), keyEquivalent: "=")
+    zIn.target = controller
+    let zOut = NSMenuItem(title: "缩小", action: #selector(AppController.zoomOut), keyEquivalent: "-")
+    zOut.target = controller
+    let zActual = NSMenuItem(title: "实际大小", action: #selector(AppController.zoomActual), keyEquivalent: "0")
+    zActual.target = controller
+    viewMenu.addItem(vReload)
+    viewMenu.addItem(.separator())
+    viewMenu.addItem(zIn)
+    viewMenu.addItem(zOut)
+    viewMenu.addItem(zActual)
+    viewItem.submenu = viewMenu
+    // 划词菜单：暂停/继续 + 打开设置
+    let cutItem = NSMenuItem()
+    mainMenu.addItem(cutItem)
+    let cutMenu = NSMenu(title: "划词")
+    let pauseItem2 = NSMenuItem(title: "暂停划词", action: #selector(AppController.togglePause), keyEquivalent: "")
+    pauseItem2.target = controller
+    menuPauseItem = pauseItem2
+    let cutSettings = NSMenuItem(title: "划词设置…", action: #selector(AppController.openSettings), keyEquivalent: "")
+    cutSettings.target = controller
+    cutMenu.addItem(pauseItem2)
+    cutMenu.addItem(cutSettings)
+    cutItem.submenu = cutMenu
+    // 窗口菜单：最小化/缩放
+    let winItem = NSMenuItem()
+    mainMenu.addItem(winItem)
+    let winMenu = NSMenu(title: "窗口")
+    let mini = NSMenuItem(title: "最小化", action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m")
+    let zoomW = NSMenuItem(title: "缩放", action: #selector(NSWindow.zoom(_:)), keyEquivalent: "")
+    winMenu.addItem(mini)
+    winMenu.addItem(zoomW)
+    winItem.submenu = winMenu
     app.mainMenu = mainMenu
 }
 
