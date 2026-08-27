@@ -542,7 +542,8 @@ function render(r, container) {
   }
 
   if (r.kind === 'mixed') {
-    container.innerHTML = r.parts.map(p => cardHtml(p)).join('<div style="height:14px"></div>');
+    // 新格式: 单卡片显示混合译文（兼容旧 parts 字段以防万一）
+    container.innerHTML = r.parts ? r.parts.map(p => cardHtml(p)).join('<div style="height:14px"></div>') : cardHtml(r);
   } else {
     container.innerHTML = cardHtml(r);
   }
