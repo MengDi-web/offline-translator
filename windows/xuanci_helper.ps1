@@ -31,6 +31,7 @@ if (-not $singletonMutex.WaitOne(0)) {
 }
 
 # ---------- 运行日志（windows\helper.log，排错用） ----------
+$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LOG = Join-Path $SCRIPT_DIR 'helper.log'
 function Log($msg) {
     try { Add-Content -Path $LOG -Value ("[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $msg) -Encoding UTF8 } catch {}
