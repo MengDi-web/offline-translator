@@ -76,6 +76,16 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
   .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
   .brand p { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* 设置键：单独固定在页面右上角，不与徽章并列 */
+  header { position: relative; }
+  .settings-btn {
+    position: absolute; top: 0; right: 0;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent-deep);
+    border: 1px solid var(--accent); padding: 5px 13px; border-radius: 999px;
+    transition: all .15s;
+  }
+  .settings-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
   .badge {
     font-size: 11px; padding: 4px 12px; border-radius: 999px;
     background: var(--accent-soft); color: var(--accent-deep);
@@ -83,14 +93,7 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
     font-weight: 500;
   }
   .badge.green { background: rgba(34, 139, 80, .10); color: #1f7a45; border-color: rgba(34, 139, 80, .25); }
-  /* 页面右上角设置键：主题相关色 */
-  .settings-btn {
-    font-size: 12.5px; font-weight: 600; cursor: pointer;
-    background: var(--accent-soft); color: var(--accent-deep);
-    border: 1px solid var(--accent); padding: 5px 13px; border-radius: 999px;
-    transition: all .15s;
-  }
-  .settings-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
   /* 一键划词：醒目大按钮 + 悬停说明 */
   .selection-panel { position: relative; display: flex; justify-content: center; margin: 4px 0 16px; }
   .selection-main {
@@ -250,8 +253,8 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
     <div class="badges">
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
       <span class="badge" id="dictBadge">加载词典…</span>
-      <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 红苹果</button>
     </div>
+    <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 红苹果</button>
   </header>
 
   <div class="selection-panel">
