@@ -178,6 +178,7 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
   .senses li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 9px; height: 9px; border-radius: 3px; background: var(--accent); opacity: .85; }
 
   .rough { font-size: 18px; font-weight: 600; line-height: 1.7; margin-bottom: 14px; }
+  .rough.multiline { white-space: pre-wrap; }
   .note { font-size: 12px; color: var(--warn); margin-top: 10px; }
   .gloss { width: 100%; border-collapse: collapse; font-size: 13px; }
   .gloss th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
@@ -397,16 +398,40 @@ input.addEventListener('input', () => {
 });
 
 // 翻译
+function translationText(r) {
+  // 取翻译文本（词典数组取首个；神经/直译是字符串）
+  if (r.rough) return r.rough;
+  if (Array.isArray(r.translation)) return r.translation.join(' / ');
+  return r.translation || '';
+}
+
 async function doTranslate() {
   const q = input.value.trim();
   if (!q) return;
   goBtn.disabled = true; goBtn.textContent = '翻译中…';
   try {
-    const r = await fetch('/api/translate?q=' + encodeURIComponent(q) + '&dir=' + curDir + '&mode=' + curMode);
-    const j = await r.json();
-    lastResult = j;
-    render(j);
-    addHistory(q, j);
+    if (q.includes('\n')) {
+      // 多行输入：逐行翻译，结果保留换行结构
+      const lines = q.split('\n');
+      const out = [];
+      for (const ln of lines) {
+        const t = ln.trim();
+        if (!t) { out.push(''); continue; }
+        const r = await fetch('/api/translate?q=' + encodeURIComponent(t) + '&dir=' + curDir + '&mode=' + curMode);
+        const j = await r.json();
+        out.push(j.error ? '' : translationText(j));
+      }
+      const joined = out.join('\n');
+      lastResult = { multiline: true, translation: joined };
+      render(lastResult);
+      addHistory(q, lastResult);
+    } else {
+      const r = await fetch('/api/translate?q=' + encodeURIComponent(q) + '&dir=' + curDir + '&mode=' + curMode);
+      const j = await r.json();
+      lastResult = j;
+      render(j);
+      addHistory(q, j);
+    }
   } catch (e) {
     render({ error: '请求失败: ' + e.message });
   } finally {
@@ -472,6 +497,15 @@ function render(r, container) {
   container = container || resultBox;
   container.classList.add('show');
 
+  if (r.multiline) {
+    container.innerHTML = `<div class="card">
+      <div class="label">多行翻译 · 保留换行</div>
+      <div class="rough multiline">${esc(r.translation)}</div>
+      <div class="action-row"><button class="btn ghost copyBtn">复制</button></div>
+    </div>`;
+    bindCopy(container, r);
+    return;
+  }
   if (r.error) {
     let html = `<div class="error">${esc(r.error)}</div>`;
     if (r.suggestions && r.suggestions.length) {
@@ -496,9 +530,12 @@ function render(r, container) {
   container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
     input.value = c.dataset.w; doTranslate();
   }));
+  bindCopy(container, r);
+}
+function bindCopy(container, r) {
   container.querySelectorAll('.copyBtn').forEach(btn => btn.addEventListener('click', () => {
     let txt;
-    if (r.engine === 'nmt') txt = r.translation;
+    if (r.multiline || r.engine === 'nmt') txt = r.translation;
     else if (r.kind === 'mixed') txt = r.rough;
     else if (r.kind === 'word') txt = (r.translation || []).join('；');
     else txt = r.rough || '';
