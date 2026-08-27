@@ -23,6 +23,22 @@
     --shadow: 0 8px 24px rgba(120, 100, 60, .10), 0 2px 6px rgba(120, 100, 60, .06);
     --radius: 16px;
   }
+  /* 深色主题（由 app 设置切换：<html data-theme="dark">） */
+  html[data-theme="dark"] {
+    --bg: #1c1c1e;
+    --panel: #2c2c2e;
+    --panel2: #3a3a3c;
+    --border: #48484a;
+    --border-strong: #5a5a5e;
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --accent: #ff453a;
+    --accent-deep: #ff6b61;
+    --accent-soft: rgba(255, 69, 58, .16);
+    --warn: #ff9f0a;
+    --danger: #ff6b61;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .4), 0 2px 6px rgba(0, 0, 0, .3);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);

@@ -72,6 +72,9 @@ enum Settings {
     static let origColorKey = "popupOrigColor"
     static let transColorKey = "popupTransColor"
     static let radiusKey = "popupRadius"
+    static let mainWidthKey = "mainWinWidth"
+    static let mainHeightKey = "mainWinHeight"
+    static let mainThemeKey = "mainWinTheme"
 
     static var width: CGFloat { CGFloat(UserDefaults.standard.double(forKey: widthKey) != 0 ? UserDefaults.standard.double(forKey: widthKey) : 301) }
     static var origFontSize: CGFloat { CGFloat(UserDefaults.standard.double(forKey: origFontKey) != 0 ? UserDefaults.standard.double(forKey: origFontKey) : 15) }
@@ -84,6 +87,15 @@ enum Settings {
     static var origColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: origColorKey) ?? "", fallback: 0xFF5648) }
     static var transColor: NSColor { hexToColor(UserDefaults.standard.string(forKey: transColorKey) ?? "", fallback: 0xFBF6CF) }
     static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 16) }
+    static var mainWidth: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainWidthKey) != 0 ? UserDefaults.standard.double(forKey: mainWidthKey) : 1100) }
+    static var mainHeight: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainHeightKey) != 0 ? UserDefaults.standard.double(forKey: mainHeightKey) : 740) }
+    static var mainTheme: String { UserDefaults.standard.string(forKey: mainThemeKey) ?? "light" }
+
+    static func saveMain(width: CGFloat, height: CGFloat, theme: String) {
+        UserDefaults.standard.set(Double(width), forKey: mainWidthKey)
+        UserDefaults.standard.set(Double(height), forKey: mainHeightKey)
+        UserDefaults.standard.set(theme, forKey: mainThemeKey)
+    }
 
     static let settingsVersionKey = "settingsVersion"
     static let defaultsVersion = 4   // 读取本地调整后的默认形式   // 默认值每变更一次 +1，旧保存值会被自动清除
@@ -398,6 +410,9 @@ final class SettingsPanel: NSPanel {
     let origFontSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
     let transFontSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
     let opacitySlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
+    let mainWidthSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
+    let mainHeightSlider = NSSlider(frame: NSRect(x: 0, y: 0, width: 200, height: 20))
+    let themeControl = NSSegmentedControl(labels: ["浅色", "深色"], trackingMode: .selectOne, target: nil, action: nil)
     let origColorWell = NSColorWell()
     let transColorWell = NSColorWell()
     let bgWell = NSColorWell()
@@ -408,6 +423,8 @@ final class SettingsPanel: NSPanel {
     let origFontLabel = NSTextField(labelWithString: "")
     let transFontLabel = NSTextField(labelWithString: "")
     let opacityLabel = NSTextField(labelWithString: "")
+    let mainWidthLabel = NSTextField(labelWithString: "")
+    let mainHeightLabel = NSTextField(labelWithString: "")
     var sections: [(header: NSButton, detail: NSStackView, key: String)] = []
     let root = NSStackView()
 
@@ -427,6 +444,8 @@ final class SettingsPanel: NSPanel {
             (origFontSlider, 10.0, 24.0, Double(Settings.origFontSize)),
             (transFontSlider, 10.0, 24.0, Double(Settings.transFontSize)),
             (opacitySlider, 0.3, 1.0, Double(Settings.opacity)),
+            (mainWidthSlider, 700.0, 1600.0, Double(Settings.mainWidth)),
+            (mainHeightSlider, 500.0, 1200.0, Double(Settings.mainHeight)),
         ] {
             sl.minValue = lo
             sl.maxValue = hi
@@ -437,6 +456,9 @@ final class SettingsPanel: NSPanel {
             sl.isEnabled = true
             sl.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         }
+        themeControl.selectedSegment = Settings.mainTheme == "dark" ? 1 : 0
+        themeControl.target = self
+        themeControl.action = #selector(changed)
         for w in [origColorWell, transColorWell, bgWell, copyWell, closeWell] {
             w.target = self; w.action = #selector(changed)
             w.widthAnchor.constraint(equalToConstant: 48).isActive = true
@@ -463,6 +485,14 @@ final class SettingsPanel: NSPanel {
             let tt = NSTextField(labelWithString: t)
             tt.font = NSFont.systemFont(ofSize: 12)
             let row = NSStackView(views: [tt, well])
+            row.orientation = .horizontal
+            row.spacing = 8
+            return row
+        }
+        func themeRow() -> NSStackView {
+            let tt = NSTextField(labelWithString: "页面主题")
+            tt.font = NSFont.systemFont(ofSize: 12)
+            let row = NSStackView(views: [tt, themeControl])
             row.orientation = .horizontal
             row.spacing = 8
             return row
@@ -504,6 +534,11 @@ final class SettingsPanel: NSPanel {
                 colorRow("复制键", copyWell),
                 colorRow("关闭键", closeWell),
             ], key: "secOther"),
+            makeSection("6. 主页面", [
+                sliderRow("窗口宽度", mainWidthSlider, mainWidthLabel),
+                sliderRow("窗口高度", mainHeightSlider, mainHeightLabel),
+                themeRow(),
+            ], key: "secMain"),
         ]
 
         let resetBtn = NSButton(title: "恢复默认", target: self, action: #selector(resetTapped))
@@ -573,7 +608,10 @@ final class SettingsPanel: NSPanel {
                       opacity: CGFloat(opacitySlider.doubleValue),
                       bgColor: bgWell.color, copyColor: copyWell.color, closeColor: closeWell.color,
                       origColor: origColorWell.color, transColor: transColorWell.color)
+        Settings.saveMain(width: CGFloat(mainWidthSlider.doubleValue), height: CGFloat(mainHeightSlider.doubleValue),
+                          theme: themeControl.selectedSegment == 1 ? "dark" : "light")
         applyToPopup()          // 弹窗形式立即更新
+        applyMainWindow()       // 主窗口大小/主题立即更新
         self.orderOut(nil)      // 关闭设置窗口
     }
     @objc func resetTapped() {
@@ -943,9 +981,12 @@ if appMain {
     let appItem = NSMenuItem()
     mainMenu.addItem(appItem)
     let appMenu = NSMenu()
+    let settingsItem = NSMenuItem(title: "设置…", action: #selector(AppController.openSettings), keyEquivalent: ",")
+    settingsItem.target = controller
     let reloadItem = NSMenuItem(title: "重新加载页面", action: #selector(AppController.reloadPage), keyEquivalent: "r")
     reloadItem.target = controller
     let quitItem = NSMenuItem(title: "退出 miaomiao翻译器", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    appMenu.addItem(settingsItem)
     appMenu.addItem(reloadItem)
     appMenu.addItem(.separator())
     appMenu.addItem(quitItem)
@@ -963,14 +1004,21 @@ if appMain {
 
 /// 主窗口（--app-main 模式）：内嵌 WebView 显示翻译页面，与浏览器无关
 func setupMainWindow() {
-    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 740),
+    let config = WKWebViewConfiguration()
+    // 深色主题：页面加载前注入标记，网页 CSS 响应 data-theme
+    if Settings.mainTheme == "dark" {
+        let script = WKUserScript(source: "document.documentElement.setAttribute('data-theme','dark')",
+                                  injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        config.userContentController.addUserScript(script)
+    }
+    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: Settings.mainWidth, height: Settings.mainHeight),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
     window.title = "miaomiao翻译器"
     window.center()
     window.setFrameAutosaveName("MiaomiaoMainWindow")
     window.isReleasedWhenClosed = false
-    let web = WKWebView(frame: window.contentView?.bounds ?? .zero)
+    let web = WKWebView(frame: window.contentView?.bounds ?? .zero, configuration: config)
     web.autoresizingMask = [.width, .height]
     window.contentView?.addSubview(web)
     mainWindow = window
@@ -979,6 +1027,18 @@ func setupMainWindow() {
     loadPageWithRetry(web, tries: 15)
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+}
+
+/// 应用主窗口设置（大小/主题）立即生效
+func applyMainWindow() {
+    if let w = mainWindow {
+        var frame = w.frame
+        frame.size = NSSize(width: Settings.mainWidth, height: Settings.mainHeight)
+        w.setFrame(frame, display: true)
+    }
+    if let web = mainWebView {
+        web.evaluateJavaScript("document.documentElement.setAttribute('data-theme','\(Settings.mainTheme)')", completionHandler: nil)
+    }
 }
 
 /// 服务就绪后加载页面（最多重试 tries 次，每次间隔 1 秒）
