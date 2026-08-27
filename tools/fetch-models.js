@@ -32,6 +32,11 @@ const FT_HASHES = {
   'opus-mt-en-zh-ft': 'b5ecff1bba068a7b1f855179f5b1fb4d949d3fe57c8031d21f3822ee0a17ab6e',
 };
 
+const DIRS = {
+  'opus-mt-zh-en-ft': { hf: 'Helsinki-NLP/opus-mt-zh-en', bin: 'opus-mt-zh-en-ft-pytorch_model.bin' },
+  'opus-mt-en-zh-ft': { hf: 'Helsinki-NLP/opus-mt-en-zh', bin: 'opus-mt-en-zh-ft-pytorch_model.bin' },
+};
+
 /** 平台相关命令执行（Windows 用 cmd.exe，其它用 bash） */
 function sh(cmd, timeout = 600000) {
   if (IS_WIN) execFileSync('cmd.exe', ['/c', cmd], { stdio: 'inherit', timeout });
