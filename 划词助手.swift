@@ -169,6 +169,7 @@ enum Settings {
         UserDefaults.standard.set(Double(opacity), forKey: opacityKey)
     }
     static func reset() {
+        // 恢复默认只重置可调数值，不改变当前主题
         UserDefaults.standard.removeObject(forKey: widthKey)
         UserDefaults.standard.removeObject(forKey: radiusKey)
         UserDefaults.standard.removeObject(forKey: origFontKey)
@@ -176,7 +177,6 @@ enum Settings {
         UserDefaults.standard.removeObject(forKey: opacityKey)
         UserDefaults.standard.removeObject(forKey: mainWidthKey)
         UserDefaults.standard.removeObject(forKey: mainHeightKey)
-        UserDefaults.standard.removeObject(forKey: themeKey)
     }
 }
 
@@ -699,7 +699,7 @@ final class SettingsPanel: NSPanel {
         opacitySlider.doubleValue = Double(Settings.opacity)
         mainWidthSlider.doubleValue = Double(Settings.mainWidth)
         mainHeightSlider.doubleValue = Double(Settings.mainHeight)
-        themeControl.selectedSegment = 0
+        // 主题保持不变（恢复默认只影响数值）
         refreshLabels()
     }
     func refreshLabels() {
