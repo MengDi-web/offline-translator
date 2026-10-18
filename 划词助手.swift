@@ -962,22 +962,50 @@ var monLastChange = NSPasteboard.general.changeCount
 var monLastHandled = ""
 var monLastTime = 0.0
 
+// 「暂停 → 开启划词」的瞬间调用：把监听基线对齐当前剪贴板，并记下此刻剪贴板里的旧内容。
+// 这样开启划词后不会把开启前留在剪贴板里的内容当成一次新划词补翻弹窗；
+// 而开启后真正新复制的内容（内容与旧内容不同）仍会立刻翻译。
+var monSkipText: String?
+var monSkipUntil = 0.0
+func markResumeBaseline() {
+    let pb = NSPasteboard.general
+    monLastChange = pb.changeCount
+    monSkipText = pb.string(forType: .string)
+    monSkipUntil = Date().timeIntervalSince1970 + 1.0
+}
+
+// 本地刚切换过开关时，短暂忽略服务器状态（等 POST 落库），避免状态被旧值回弹
+var modeSyncSuppressUntil = 0.0
+
+// 划词开关同步（独立线程：不阻塞剪贴板监听，网页/菜单开关 ≈0.2 秒内生效）
+func startModeSync() {
+    DispatchQueue.global(qos: .utility).async {
+        while true {
+            Thread.sleep(forTimeInterval: 0.2)
+            if Date().timeIntervalSince1970 < modeSyncSuppressUntil { continue }
+            guard let on = fetchSelectionMode() else { continue }
+            let p = !on
+            if p == paused { continue }
+            paused = p
+            // 暂停 → 开启：记录基线，开启那一刻不补翻旧内容
+            if !paused { markResumeBaseline() }
+            DispatchQueue.main.async { syncPauseUI() }
+        }
+    }
+}
+
 func startMonitor() {
     debugLog("monitor 启动(剪贴板模式)\n")
     DispatchQueue.global(qos: .userInitiated).async {
-        var tick = 0
         while true {
             Thread.sleep(forTimeInterval: 0.25)
-            tick += 1
-            // 每 12 次(≈3秒)同步服务器划词开关: 页面按钮与菜单保持同一状态
-            if tick % 12 == 0, let on = fetchSelectionMode() {
-                let p = !on
-                if p != paused {
-                    paused = p
-                    DispatchQueue.main.async { syncPauseUI() }
-                }
+            if paused {
+                // 未开启划词 / 已暂停：只跟踪剪贴板基线，不翻译。
+                // 否则暂停期间（甚至更早）复制的内容会在开启划词后被补翻弹窗。
+                let cc0 = NSPasteboard.general.changeCount
+                if cc0 != monLastChange { monLastChange = cc0 }
+                continue
             }
-            if paused { continue }
             let pb = NSPasteboard.general
             let cc = pb.changeCount
             if cc == monLastChange { continue }
@@ -985,6 +1013,13 @@ func startMonitor() {
             guard let raw = pb.string(forType: .string), !raw.isEmpty, raw.count <= 3000 else { continue }
             let text = normalizeWrappedText(raw)   // PDF 断行合并
             let now = Date().timeIntervalSince1970
+            // 刚开启划词：剪贴板里原本就有的那份旧内容不算新划词（只跳过一次）
+            if let skip = monSkipText, now <= monSkipUntil {
+                monSkipText = nil
+                if text == skip { continue }
+            } else {
+                monSkipText = nil
+            }
             // 同一内容 2 秒内重复复制不重复触发；超过 2 秒再次复制则重新显示
             if text == monLastHandled, now - monLastTime < 2.0 { continue }
             monLastHandled = text
@@ -1125,8 +1160,11 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
     @objc func togglePause() {
+        // 先记下基线再打开监听：否则开启瞬间会把剪贴板里的旧内容当成新划词补翻
+        if paused { markResumeBaseline() }
         paused.toggle()
         // 同步服务器「划词开关」(页面按钮与菜单显示同一状态)
+        modeSyncSuppressUntil = Date().timeIntervalSince1970 + 2.0
         var req = URLRequest(url: URL(string: "http://127.0.0.1:6688/api/selection-mode")!)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1317,4 +1355,5 @@ debugLog("启动\n")
 ensureServer()          // 服务不在线时自动拉起（脱离终端也可用）
 if appMain { setupMainWindow() }   // 应用主进程：弹出内嵌翻译窗口
 startMonitor()
+startModeSync()         // 独立线程同步「开启一键划词」开关
 app.run()

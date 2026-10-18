@@ -1,4 +1,4 @@
-﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -304,6 +304,10 @@ $timer.add_Tick({
         $t = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
+        # 只处理「新复制」：内容与上次看到的一样就不再请求/弹窗。
+        # 旧逻辑靠 2 秒后重试，会把开启划词前就留在剪贴板里的旧内容补翻弹出来。
+        if ($t -eq $script:lastSeen) { return }
+        $script:lastSeen = $t
         if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
         Log ("剪贴板文本({0}字符): {1}" -f $t.Length, $t.Substring(0, [Math]::Min(30, $t.Length)))
         if (Test-Garbled $t) {
@@ -314,7 +318,11 @@ $timer.add_Tick({
         }
         $resp = Request-Translation $t
         if ($resp) {
-            if ($resp.disabled) { Log "服务端: 划词未开启(disabled), 不弹窗"; return }
+            if ($resp.disabled) {
+                Log "服务端: 划词未开启(disabled), 不弹窗"
+                $script:lastText = $t; $script:lastCopyTime = $now
+                return
+            }
             Log ("服务端响应: error={0} kind={1}" -f $resp.error, $resp.kind)
             Show-Popup $resp
         } else {
@@ -328,6 +336,13 @@ $timer.add_Tick({
 })
 $script:lastText = ''
 $script:lastCopyTime = [DateTime]::MinValue
+# 启动时的基线：开启前就躺在剪贴板里的内容不算一次新划词
+$script:lastSeen = $null
+try {
+    if ([System.Windows.Forms.Clipboard]::ContainsText()) {
+        $script:lastSeen = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
+    }
+} catch {}
 $timer.Start()
 
 # ---------- 设置窗口 ----------
