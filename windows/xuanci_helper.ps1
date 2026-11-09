@@ -13,6 +13,7 @@ param([switch]$Debug)
 
 # 启动失败兜底：显示错误并停留，避免窗口闪退看不到原因
 trap {
+    try { Log ("启动失败(错误): " + $_.Exception.Message + " | " + $_.InvocationInfo.PositionMessage) } catch {}
     Write-Host ''
     Write-Host '=================================================='
     Write-Host "启动失败: $_"

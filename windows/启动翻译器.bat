@@ -31,6 +31,7 @@ timeout /t 5 /nobreak >nul
 if not exist "%WIN%helper.log" (
     echo [提示] 划词助手似乎未启动成功（没生成 windows\helper.log）
     echo        若划词没反应，请把 windows\helper.log 的内容发给开发者
+    echo        或双击 windows\诊断划词.bat 查看具体错误
     echo        划词不影响主功能：网页翻译照常可用
 )
 

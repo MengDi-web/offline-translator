@@ -78,6 +78,15 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
   .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-right: 190px; }   /* 右侧留白, 与右上角设置键保持较大间隔 */
   /* 设置键：单独固定在页面右上角，不与徽章并列 */
   header { position: relative; }
+  .theme-sel {
+    position: absolute; top: 50%; right: 104px; transform: translateY(-50%);
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    background: var(--card); color: var(--accent-deep);
+    border: 1px solid var(--accent); padding: 4px 8px; border-radius: 999px;
+    outline: none; font-family: inherit;
+  }
+  .theme-sel:hover { filter: brightness(1.03); }
+  .theme-sel.hidden { display: none; }
   .settings-btn {
     position: absolute; top: 50%; right: 0; transform: translateY(-50%);
     font-size: 12.5px; font-weight: 600; cursor: pointer;
@@ -254,6 +263,12 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
       <span class="badge blue"><span class="dot"></span>100% 离线</span>
       <span class="badge" id="dictBadge">加载词典…</span>
     </div>
+    <select class="theme-sel" id="themeSel" title="切换主题" aria-label="切换主题">
+      <option value="apple">红苹果</option>
+      <option value="green-apple">青苹果</option>
+      <option value="banana">香蕉</option>
+      <option value="soda">汽水</option>
+    </select>
     <button class="settings-btn" id="settingsBtn" title="打开设置">⚙︎ 红苹果</button>
   </header>
 
@@ -333,12 +348,37 @@ updateSettingsBtnLabel();
 // 主题由 app 注入 data-theme 属性 → 属性变化时自动更新按钮文字
 new MutationObserver(updateSettingsBtnLabel).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-// 页面右上角设置键：在翻译器 app 内桥接到原生设置面板
+// 是否为 Mac 应用内（有原生桥接 → 主题由 app 设置面板控制）
+const IN_MAC_APP = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.miaomiaoOpenSettings);
+const THEME_KEY = 'miaomiao-theme';
+
+// 浏览器/Windows 版：页面内主题下拉框
+if (!IN_MAC_APP) {
+  const saved = (() => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } })();
+  if (saved && THEME_NAMES[saved]) document.documentElement.setAttribute('data-theme', saved);
+  const sel = $('#themeSel');
+  if (sel) {
+    sel.value = document.documentElement.getAttribute('data-theme') || 'apple';
+    sel.addEventListener('change', () => {
+      const t = sel.value;
+      document.documentElement.setAttribute('data-theme', t);
+      try { localStorage.setItem(THEME_KEY, t); } catch {}
+    });
+  }
+} else {
+  // Mac 应用内：隐藏页面主题下拉框（用 app 自己的设置面板）
+  const sel = $('#themeSel');
+  if (sel) sel.classList.add('hidden');
+}
+
+// 页面右上角设置键：Mac 内桥接原生设置面板；Windows/浏览器给正确提示
 $('#settingsBtn').addEventListener('click', () => {
-  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.miaomiaoOpenSettings) {
+  if (IN_MAC_APP) {
     window.webkit.messageHandlers.miaomiaoOpenSettings.postMessage(null);
   } else {
-    alert('请通过翻译器菜单栏的「设置…」打开设置');
+    alert('Windows / 浏览器版设置方式：\n\n' +
+          '· 主题：用右上角「主题下拉框」直接切换\n' +
+          '· 划词弹窗（宽度/字号/颜色）：右键右下角托盘图标「划词助手」→ 设置');
   }
 });
 let curDir = 'auto';
