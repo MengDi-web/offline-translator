@@ -1,0 +1,94 @@
+#!/bin/bash
+# build-cloud-package.sh — 构建「网盘分发版」：不依赖 GitHub
+#   Windows: 内置模型(297MB, 部署时跳过模型下载) + Node/Python 走国内镜像
+#   macOS:   ditto 打包(保留符号链接/签名), 完全自包含
+#   输出: dist/网盘分发/
+set -e
+cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
+
+echo "== 1/3 Windows 完整版（内置模型）=="
+rm -rf /tmp/win-full && mkdir -p /tmp/win-full
+rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' \
+  --exclude '划词助手' --exclude '划词助手.app' --exclude '*.command' \
+  --exclude '*.icns' --exclude 'miaomiao图标.png' --exclude '翻译数据库' \
+  --exclude 'neural/data' --exclude 'neural/probe_servers.py' --exclude 'neural/setup_remote.py' \
+  --exclude 'neural/gpu_status.py' --exclude 'neural/build_ft_models.py' \
+  --exclude '部署说明.md' --exclude '发布指南.md' --exclude '*.DS_Store' \
+  server.js translate.js package.json README.md LICENSE lib public data neural tools windows \
+  /tmp/win-full/
+rm -f "/tmp/win-full/neural/models/opus-mt-zh-en-ft/opus-mt-zh-en-ft-pytorch_model.bin" \
+      "/tmp/win-full/neural/models/opus-mt-en-zh-ft/opus-mt-en-zh-ft-pytorch_model.bin"
+rm -f "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
+python3 "$ROOT/tools/zip-utf8.py" /tmp/win-full "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
+
+echo "== 2/3 macOS 子包（ditto）=="
+codesign --force --sign - --deep "$ROOT/dist/miaomiao翻译器.app"
+rm -f "$ROOT/dist/miaomiao翻译器-mac.zip"
+ditto -c -k --sequesterRsrc --keepParent \
+  "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao翻译器-mac.zip"
+
+echo "== 3/3 组装网盘分发目录 =="
+OUT="$ROOT/dist/网盘分发"
+rm -rf "$OUT"
+mkdir -p "$OUT/macOS" "$OUT/Windows"
+cp "$ROOT/dist/miaomiao翻译器-mac.zip" "$OUT/macOS/"
+cp "$ROOT/dist/miaomiao翻译器-win-完整版.zip" "$OUT/Windows/"
+
+cat > "$OUT/macOS/安装说明.txt" <<'EOF'
+macOS（苹果电脑）安装说明 —— 只需 3 步
+
+适用条件：仅支持 Apple 芯片（M1 / M2 / M3 / M4），系统 macOS 11 及以上。
+
+1. 双击解压 miaomiao翻译器-mac.zip → 得到 miaomiao翻译器.app
+2. 双击 miaomiao翻译器.app
+3. 若提示「无法验证开发者」：右键点该应用 → 打开 → 再点「打开」（仅第一次）
+
+完全离线：Node / Python / 翻译模型 / 词典全部内置，不需要联网，不安装任何东西。
+
+使用：
+- 窗口里输入文字 → 自动翻译
+- 划词：点右上角「开启一键划词」→ 选中文字按 Cmd+C → 弹窗翻译
+
+安全：不需要管理员密码，不写系统目录，只监听本机 127.0.0.1，不上传任何内容。
+卸载：直接删除 app 即可，无残留。
+EOF
+
+cat > "$OUT/Windows/安装说明.txt" <<'EOF'
+Windows 安装说明 —— 2 步 + 每次 1 步
+
+【第一次，约 5-10 分钟】
+1. 先解压整个压缩包到文件夹（右键 → 全部解压；不要在压缩包里直接双击）
+2. 进入解压出的文件夹 → windows → 双击「一键部署.cmd」
+   - 自动下载 Node / Python（国内镜像，SHA-256 校验）
+   - 翻译模型已内置在本压缩包里，无需额外下载
+
+【以后每次使用】
+1. 双击 windows\启动翻译器.bat → 保持黑色窗口打开
+2. 打开浏览器，地址栏输入：http://127.0.0.1:6688 → 回车
+
+划词（可选）：网页上点一次「开启一键划词」→ 之后任意软件选中文字按 Ctrl+C 弹窗翻译。
+
+注意：黑色窗口就是服务，不要关闭；关掉就停止翻译。
+安全：不需要管理员权限（Python 装到当前用户），不写注册表，只监听本机 127.0.0.1。
+卸载：直接删除整个文件夹即可。
+EOF
+
+cat > "$OUT/安装说明.txt" <<'EOF'
+miaomiao翻译器 · 网盘分发版
+=============================
+按对方的电脑系统发对应的文件夹：
+
+  macOS\miaomiao翻译器-mac.zip        苹果电脑用（Apple 芯片 M1-M4）
+  Windows\miaomiao翻译器-win-完整版.zip  Windows 电脑用（模型已内置）
+
+都是完全离线的中英互译工具：
+· 词典 + 本地神经翻译双引擎
+· 不联网、不上传、不需要管理员权限
+· 卸载 = 删除文件，零残留
+
+各文件夹内有该系统的详细安装说明。
+EOF
+
+echo "✅ 网盘分发版完成: dist/网盘分发/ ($(du -sh "$OUT" | cut -f1))"
+echo "   macOS/  ·  Windows/"
