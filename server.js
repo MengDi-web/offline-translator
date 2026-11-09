@@ -44,7 +44,7 @@ const XUANCI_FILE = process.platform === 'win32'
   ? path.join(ROOT, 'windows', 'xuanci_config.json')
   : path.join(os.homedir(), 'Library', 'Application Support', 'miaomiao-translator', 'xuanci_config.json');
 const XUANCI_DEFAULTS = {
-  version: 2,
+  version: 3,
   width: 350,
   origFontSize: 14,
   transFontSize: 15,
@@ -54,7 +54,7 @@ const XUANCI_DEFAULTS = {
   copyColor: '#FF3B30',
   closeColor: '#F0EAE0',
   origColor: '#1D1D1F',
-  transColor: '#C0392B',
+  transColor: '#1D1D1F',
 };
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -62,7 +62,7 @@ function readXuanciConfig() {
   try {
     if (fs.existsSync(XUANCI_FILE)) {
       const saved = JSON.parse(fs.readFileSync(XUANCI_FILE, 'utf8'));
-      if (saved && saved.version === 2) {
+      if (saved && saved.version === 3) {
         const out = Object.assign({}, XUANCI_DEFAULTS);
         for (const k of Object.keys(XUANCI_DEFAULTS)) {
           if (saved[k] !== undefined && saved[k] !== null) out[k] = saved[k];
@@ -90,7 +90,7 @@ function writeXuanciConfig(raw) {
     for (const k of ['bgColor', 'copyColor', 'closeColor', 'origColor', 'transColor']) {
       if (typeof raw[k] === 'string' && HEX_RE.test(raw[k])) out[k] = raw[k].toUpperCase();
     }
-    out.version = 2;
+    out.version = 3;
     fs.mkdirSync(path.dirname(XUANCI_FILE), { recursive: true });
     fs.writeFileSync(XUANCI_FILE, JSON.stringify(out, null, 2));
     return true;

@@ -345,16 +345,16 @@ $timer.add_Tick({
             if ($seq -eq $script:lastClipSeq) { return }
             $script:lastClipSeq = $seq
         } else {
+            # 拿不到序列号: 用内容+2秒窗口兜底
             if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
             $t0 = [System.Windows.Forms.Clipboard]::GetText()
-            if ($t0 -eq $script:lastSeen) { return }
+            if ($t0 -eq $script:lastSeen -and ([DateTime]::Now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
             $script:lastSeen = $t0
         }
         if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
         $t = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
-        if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
         Log ("剪贴板文本({0}字符): {1}" -f $t.Length, $t.Substring(0, [Math]::Min(30, $t.Length)))
         if (Test-Garbled $t) {
             Log "判定为乱码, 提示不翻译"
@@ -385,6 +385,10 @@ $script:lastCopyTime = [DateTime]::MinValue
 # 启动时的基线：开启前就躺在剪贴板里的内容不算一次新划词
 $script:lastSeen = $null
 $script:lastClipSeq = 0
+try {
+    # 记录当前剪贴板序列号, 避免启动瞬间把已有内容当成"新复制"弹窗
+    $script:lastClipSeq = [MiaoNative.Clip]::GetClipboardSequenceNumber()
+} catch { $script:lastClipSeq = 0 }
 try {
     if ([System.Windows.Forms.Clipboard]::ContainsText()) {
         $script:lastSeen = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
