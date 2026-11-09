@@ -1,4 +1,4 @@
-# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
+﻿# xuanci_helper.ps1 — Windows miaomiao翻译助手（Cmd+C 触发，PowerShell 原生，无需编译）
 #
 # 用法:
 #   powershell.exe -ExecutionPolicy Bypass -File xuanci_helper.ps1
@@ -22,26 +22,29 @@ trap {
     exit 1
 }
 
-# 单实例互斥锁: 防止重复启动导致双弹窗/循环翻译
-$singletonMutex = New-Object System.Threading.Mutex($false, 'MiaomiaoXuanciHelper')
-if (-not $singletonMutex.WaitOne(0)) {
-    Write-Host '划词助手已在运行（请看系统托盘图标），无需重复启动'
-    Start-Sleep -Seconds 2
-    exit 1
-}
-
 # ---------- 运行日志（windows\helper.log，排错用） ----------
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LOG = Join-Path $SCRIPT_DIR 'helper.log'
 function Log($msg) {
     try { Add-Content -Path $LOG -Value ("[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $msg) -Encoding UTF8 } catch {}
 }
+Log "=== 启动 PID=$PID ==="
+
+# 单实例互斥锁: 防止重复启动导致双弹窗/循环翻译
+$singletonMutex = New-Object System.Threading.Mutex($false, 'MiaomiaoXuanciHelper')
+if (-not $singletonMutex.WaitOne(0)) {
+    Log "已有实例在运行, 本次退出"
+    Write-Host '划词助手已在运行（请看系统托盘图标），无需重复启动'
+    Start-Sleep -Seconds 2
+    exit 1
+}
 
 $ErrorActionPreference = 'Stop'
+Log "加载 WinForms..."
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Log "WinForms 就绪"
 
-$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $CONFIG_PATH = Join-Path $SCRIPT_DIR 'xuanci_config.json'
 $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 
