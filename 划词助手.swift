@@ -66,8 +66,8 @@ enum Theme: String, CaseIterable {
     case apple = "apple"            // 苹果：米黄奶油底 + 苹果红
     case greenApple = "green-apple" // 青苹果：青苹果绿 + 米黄
     case banana = "banana"          // 香蕉：香蕉黄 + 米白
-    case soda = "soda"              // 汽水：汽水蓝 + 玻璃感
     case peach = "peach"            // 桃子：浅粉白底 + 青柠绿
+    case soda = "soda"              // 汽水：汽水蓝 + 玻璃感
 
     var name: String {
         switch self {
@@ -84,7 +84,7 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .peach: return hexToColor("", fallback: 0xB2F425) } }
+        case .peach: return hexToColor("", fallback: 0xFFC8C2) } }   // 桃子: 滑块色用浅粉
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
