@@ -39,20 +39,21 @@ function getSelectionMode() {
 }
 // ---------- 页面 UI 主题(供划词弹窗跟随) ----------
 const UI_THEME_FILE = path.join(ROOT, 'data', 'ui-theme.json');
-const UI_THEMES = ['apple', 'green-apple', 'banana', 'soda', 'guava'];
+const UI_THEMES = ['apple', 'green-apple', 'banana', 'soda', 'peach'];
 // 每套主题对应的弹窗配色(取自 public/index.html 的 CSS 变量)
 const THEME_PALETTES = {
   apple:         { bgColor: '#FFFDF7', origColor: '#1D1D1F', transColor: '#1D1D1F', copyColor: '#FF3B30', closeColor: '#F0EAE0', borderColor: '#E8DFCF' },
   'green-apple': { bgColor: '#FBFDF2', origColor: '#20290F', transColor: '#20290F', copyColor: '#96D35F', closeColor: '#E2E9C2', borderColor: '#E2E9C2' },
   banana:        { bgColor: '#FFFDF4', origColor: '#3A2F0C', transColor: '#3A2F0C', copyColor: '#E8AD00', closeColor: '#F0E0A8', borderColor: '#F0E0A8' },
   soda:          { bgColor: '#F4FAFC', origColor: '#0E2F3A', transColor: '#0E2F3A', copyColor: '#74A7FE', closeColor: '#D3E2F5', borderColor: '#D3E2F5' },
-  guava:         { bgColor: '#ffd4cc', origColor: '#e14433', transColor: '#d63a1f', copyColor: '#81af3c', closeColor: '#ffd4cc', borderColor: '#fbafa2' },
+  peach:         { bgColor: '#ffffff', origColor: '#ffa399', transColor: '#ff584d', copyColor: '#b8ee44', closeColor: '#ffd4cc', borderColor: '#fbafa2' },
 };
 
 function getUiTheme() {
   try {
     if (fs.existsSync(UI_THEME_FILE)) {
-      const t = JSON.parse(fs.readFileSync(UI_THEME_FILE, 'utf8').replace(/^\uFEFF/, '')).theme;
+      let t = JSON.parse(fs.readFileSync(UI_THEME_FILE, 'utf8').replace(/^\uFEFF/, '')).theme;
+      if (t === 'guava') t = 'peach';   // 旧主题名迁移
       if (UI_THEMES.includes(t)) return t;
     }
   } catch {}

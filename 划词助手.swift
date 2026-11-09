@@ -67,7 +67,7 @@ enum Theme: String, CaseIterable {
     case greenApple = "green-apple" // 青苹果：青苹果绿 + 米黄
     case banana = "banana"          // 香蕉：香蕉黄 + 米白
     case soda = "soda"              // 汽水：汽水蓝 + 玻璃感
-    case guava = "guava"            // 芭乐：粉色 + 草绿
+    case peach = "peach"            // 桃子：浅粉白底 + 青柠绿
 
     var name: String {
         switch self {
@@ -75,7 +75,7 @@ enum Theme: String, CaseIterable {
         case .greenApple: return "青苹果"
         case .banana: return "香蕉"
         case .soda: return "汽水"
-        case .guava: return "芭乐"
+        case .peach: return "桃子"
         }
     }
     // 页面强调色（设置面板滑块等原生控件用）
@@ -84,38 +84,38 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .guava: return hexToColor("", fallback: 0x98AD10) } }
+        case .peach: return hexToColor("", fallback: 0xB8EE43) } }
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
         case .greenApple: return hexToColor("", fallback: 0x000000)
         case .banana: return hexToColor("", fallback: 0x000000)
         case .soda: return hexToColor("", fallback: 0x000000)
-        case .guava: return hexToColor("", fallback: 0x000000) } }
+        case .peach: return hexToColor("", fallback: 0xFFFFFF) } }
     var popupOrig: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFF5648)
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x53D5FD)
-        case .guava: return hexToColor("", fallback: 0xE14433) } }
+        case .peach: return hexToColor("", fallback: 0xFFA399) } }
     var popupTrans: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6CF)
         case .greenApple: return hexToColor("", fallback: 0xFEFCDD)
         case .banana: return hexToColor("", fallback: 0xFDF6DE)
         case .soda: return hexToColor("", fallback: 0xFFFFFF)
-        case .guava: return hexToColor("", fallback: 0xD63A1F) } }
+        case .peach: return hexToColor("", fallback: 0xFF584D) } }
     var popupCopy: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6C6)
         case .greenApple: return hexToColor("", fallback: 0xB1DD8C)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .guava: return hexToColor("", fallback: 0x81AF3C) } }
+        case .peach: return hexToColor("", fallback: 0xB8EE44) } }
     var popupClose: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFFFFFF)
         case .greenApple: return hexToColor("", fallback: 0xFFFFFF)
         case .banana: return hexToColor("", fallback: 0xFFFFFF)
         case .soda: return hexToColor("", fallback: 0xFFFFFF)
-        case .guava: return hexToColor("", fallback: 0xFFD4CC) } }
+        case .peach: return hexToColor("", fallback: 0xFFD4CC) } }
 }
 
 enum Settings {
@@ -140,7 +140,11 @@ enum Settings {
     static var radius: CGFloat { CGFloat(UserDefaults.standard.double(forKey: radiusKey) != 0 ? UserDefaults.standard.double(forKey: radiusKey) : 16) }
     static var mainWidth: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainWidthKey) != 0 ? UserDefaults.standard.double(forKey: mainWidthKey) : 1100) }
     static var mainHeight: CGFloat { CGFloat(UserDefaults.standard.double(forKey: mainHeightKey) != 0 ? UserDefaults.standard.double(forKey: mainHeightKey) : 740) }
-    static var theme: Theme { Theme(rawValue: UserDefaults.standard.string(forKey: themeKey) ?? "") ?? .apple }
+    static var theme: Theme {
+        let raw = UserDefaults.standard.string(forKey: themeKey) ?? ""
+        let fixed = raw == "guava" ? "peach" : raw   // 旧主题名迁移
+        return Theme(rawValue: fixed) ?? .apple
+    }
     // 弹窗配色统一跟随主题（不再单独自定义颜色）
     static var bgColor: NSColor { theme.popupBg }
     static var origColor: NSColor { theme.popupOrig }

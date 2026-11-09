@@ -1,22 +1,22 @@
 {
-  "theme": "guava",
+  "theme": "peach",
   "page": {
-    "bg": "#fcaa91",
-    "panel": "#ffc6b3",
-    "panel2": "#ffc5b3",
-    "border": "#fcaa91",
+    "bg": "#fffafa",
+    "panel": "#fff1f0",
+    "panel2": "#ffe7e5",
+    "border": "#ffcdc7",
     "borderStrong": "#ffd4cc",
-    "text": "#7db12f",
-    "muted": "#de543a",
-    "accent": "#98ad10",
-    "accentDeep": "#496a29",
-    "mainBtn": "#f77d5f"
+    "text": "#ff908a",
+    "muted": "#ff7e70",
+    "accent": "#b8ee43",
+    "accentDeep": "#ff837a",
+    "mainBtn": "#ffcccc"
   },
   "popup": {
-    "bgColor": "#ffd4cc",
-    "origColor": "#e14433",
-    "transColor": "#d63a1f",
-    "copyColor": "#81af3c",
+    "bgColor": "#ffffff",
+    "origColor": "#ffa399",
+    "transColor": "#ff584d",
+    "copyColor": "#b8ee44",
     "closeColor": "#ffd4cc",
     "borderColor": "#fbafa2"
   }
