@@ -1,0 +1,23 @@
+{
+  "theme": "guava",
+  "page": {
+    "bg": "#fcaa91",
+    "panel": "#ffc6b3",
+    "panel2": "#ffc5b3",
+    "border": "#fcaa91",
+    "borderStrong": "#ffd4cc",
+    "text": "#7db12f",
+    "muted": "#de543a",
+    "accent": "#98ad10",
+    "accentDeep": "#496a29",
+    "mainBtn": "#f77d5f"
+  },
+  "popup": {
+    "bgColor": "#ffd4cc",
+    "origColor": "#e14433",
+    "transColor": "#d63a1f",
+    "copyColor": "#81af3c",
+    "closeColor": "#ffd4cc",
+    "borderColor": "#fbafa2"
+  }
+}

@@ -84,7 +84,7 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .guava: return hexToColor("", fallback: 0x7CB342) } }
+        case .guava: return hexToColor("", fallback: 0x98AD10) } }
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
@@ -97,25 +97,25 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x53D5FD)
-        case .guava: return hexToColor("", fallback: 0xFF7BA0) } }
+        case .guava: return hexToColor("", fallback: 0xE14433) } }
     var popupTrans: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6CF)
         case .greenApple: return hexToColor("", fallback: 0xFEFCDD)
         case .banana: return hexToColor("", fallback: 0xFDF6DE)
         case .soda: return hexToColor("", fallback: 0xFFFFFF)
-        case .guava: return hexToColor("", fallback: 0xEFF7E4) } }
+        case .guava: return hexToColor("", fallback: 0xD63A1F) } }
     var popupCopy: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6C6)
         case .greenApple: return hexToColor("", fallback: 0xB1DD8C)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .guava: return hexToColor("", fallback: 0x7CB342) } }
+        case .guava: return hexToColor("", fallback: 0x81AF3C) } }
     var popupClose: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFFFFFF)
         case .greenApple: return hexToColor("", fallback: 0xFFFFFF)
         case .banana: return hexToColor("", fallback: 0xFFFFFF)
         case .soda: return hexToColor("", fallback: 0xFFFFFF)
-        case .guava: return hexToColor("", fallback: 0xFFF0F4) } }
+        case .guava: return hexToColor("", fallback: 0xFFD4CC) } }
 }
 
 enum Settings {
