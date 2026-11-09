@@ -59,7 +59,8 @@ $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 
 # ---------- 默认配置 ----------
 $DEFAULTS = @{
-    version = 3              # 配色版本: 3 = 与页面红苹果主题一致
+    version = 3              # 配色版本: 3
+    followTheme = $true      # 弹窗颜色跟随页面主题
     width = 350
     origFontSize = 14
     transFontSize = 15
@@ -169,6 +170,16 @@ $lastCopyTime = [DateTime]::MinValue
 function Show-Popup($resp) {
     # 每次弹窗前重新读配置: 网页版设置页修改后即时生效
     try { $script:cfg = Load-Config } catch {}
+    # 颜色跟随页面主题(服务端在响应里带了 themePalette)
+    if ($cfg.followTheme -ne $false -and $resp.themePalette) {
+        $pal = $resp.themePalette
+        if ($pal.bgColor)    { $cfg.bgColor = [string]$pal.bgColor }
+        if ($pal.origColor)  { $cfg.origColor = [string]$pal.origColor }
+        if ($pal.transColor) { $cfg.transColor = [string]$pal.transColor }
+        if ($pal.copyColor)  { $cfg.copyColor = [string]$pal.copyColor }
+        if ($pal.closeColor) { $cfg.closeColor = [string]$pal.closeColor }
+        if ($pal.borderColor) { $script:borderColor = [string]$pal.borderColor }
+    }
     if ($popupForm -and -not $popupForm.IsDisposed) { $popupForm.Close() }
 
     $f = New-Object System.Windows.Forms.Form
@@ -187,12 +198,17 @@ function Show-Popup($resp) {
     $title.Padding = New-Object System.Windows.Forms.Padding(14,10,14,0)
     $title.AutoEllipsis = $true
 
-    $bodyLbl = New-Object System.Windows.Forms.Label
-    $bodyLbl.AutoSize = $false
+    # 正文: 多行只读文本框(最多 6 行, 超出可滚动)
+    $bodyLbl = New-Object System.Windows.Forms.TextBox
+    $bodyLbl.Multiline = $true
+    $bodyLbl.ReadOnly = $true
+    $bodyLbl.BorderStyle = 'None'
+    $bodyLbl.ScrollBars = 'Vertical'
+    $bodyLbl.WordWrap = $true
     $bodyLbl.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', [float]$cfg.transFontSize)
+    $bodyLbl.BackColor = HexToColor $cfg.bgColor
     $bodyLbl.ForeColor = HexToColor $cfg.transColor
     $bodyLbl.Padding = New-Object System.Windows.Forms.Padding(14,6,14,0)
-    $bodyLbl.AutoEllipsis = $true
 
     $copyBtn = New-Object System.Windows.Forms.Button
     $copyBtn.Text = '复制译文'
@@ -300,8 +316,15 @@ function Show-Popup($resp) {
     $title.Width = $w - 28
     $bodyLbl.Width = $w - 28
     $title.Top = 0; $title.Left = 0
-    $bodyLbl.Top = $title.Height; $bodyLbl.Left = 0
-    $bodyLbl.Height = [Math]::Min(360, [Math]::Max(40, [int]($bodyLbl.PreferredHeight + 12)))
+    $bodyLbl.Top = $title.Height; $bodyLbl.Left = 12   # 文本框不支持内边距, 用左偏移留白
+    # 正文字数高度: 最多显示 6 行, 超出则右侧出现滚动条
+    $textW = [Math]::Max(40, $w - 28 - 10)
+    $measured = [System.Windows.Forms.TextRenderer]::MeasureText(
+        [string]$bodyLbl.Text, $bodyLbl.Font,
+        (New-Object System.Drawing.Size($textW, 4000)),
+        [System.Windows.Forms.TextFormatFlags]::WordBreak)
+    $lineH = [int][Math]::Ceiling($bodyLbl.Font.GetHeight())
+    $bodyLbl.Height = [int][Math]::Min($lineH * 6 + 14, [Math]::Max($lineH + 14, $measured.Height + 14))
     $popupH = [int]($bodyLbl.Bottom) + 40
     $f.ClientSize = New-Object System.Drawing.Size($w, $popupH)
     $copyBtn.SetBounds(14, $bodyLbl.Bottom + 6, 90, 28)
@@ -335,7 +358,8 @@ function Show-Popup($resp) {
     # 关闭后清空"已处理"记录, 以便同一段文本可以再次划词
     $f.Add_Paint({
         param($sender, $e)
-        $pen = New-Object System.Drawing.Pen((HexToColor '#E8DFCF'), 1)
+        $bc = if ($script:borderColor) { $script:borderColor } else { '#E8DFCF' }
+        $pen = New-Object System.Drawing.Pen((HexToColor $bc), 1)
         try { $e.Graphics.DrawRectangle($pen, 0, 0, $sender.ClientSize.Width - 1, $sender.ClientSize.Height - 1) }
         finally { $pen.Dispose() }
     })
@@ -392,6 +416,7 @@ $timer.add_Tick({
 })
 $script:lastText = ''
 $script:lastCopyTime = [DateTime]::MinValue
+$script:borderColor = '#E8DFCF'
 # 启动时的基线：开启前就躺在剪贴板里的内容不算一次新划词
 $script:lastSeen = $null
 $script:lastClipSeq = 0

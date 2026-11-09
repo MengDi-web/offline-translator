@@ -37,6 +37,35 @@ function getSelectionMode() {
   } catch {}
   return false;   // 默认关闭，需在网页点「开启一键划词」
 }
+// ---------- 页面 UI 主题(供划词弹窗跟随) ----------
+const UI_THEME_FILE = path.join(ROOT, 'data', 'ui-theme.json');
+const UI_THEMES = ['apple', 'green-apple', 'banana', 'soda'];
+// 每套主题对应的弹窗配色(取自 public/index.html 的 CSS 变量)
+const THEME_PALETTES = {
+  apple:         { bgColor: '#FFFDF7', origColor: '#1D1D1F', transColor: '#1D1D1F', copyColor: '#FF3B30', closeColor: '#F0EAE0', borderColor: '#E8DFCF' },
+  'green-apple': { bgColor: '#FBFDF2', origColor: '#20290F', transColor: '#20290F', copyColor: '#96D35F', closeColor: '#E2E9C2', borderColor: '#E2E9C2' },
+  banana:        { bgColor: '#FFFDF4', origColor: '#3A2F0C', transColor: '#3A2F0C', copyColor: '#E8AD00', closeColor: '#F0E0A8', borderColor: '#F0E0A8' },
+  soda:          { bgColor: '#F4FAFC', origColor: '#0E2F3A', transColor: '#0E2F3A', copyColor: '#74A7FE', closeColor: '#D3E2F5', borderColor: '#D3E2F5' },
+};
+
+function getUiTheme() {
+  try {
+    if (fs.existsSync(UI_THEME_FILE)) {
+      const t = JSON.parse(fs.readFileSync(UI_THEME_FILE, 'utf8').replace(/^\uFEFF/, '')).theme;
+      if (UI_THEMES.includes(t)) return t;
+    }
+  } catch {}
+  return 'apple';
+}
+function setUiTheme(t) {
+  if (!UI_THEMES.includes(t)) return false;
+  try {
+    fs.mkdirSync(path.dirname(UI_THEME_FILE), { recursive: true });
+    fs.writeFileSync(UI_THEME_FILE, JSON.stringify({ theme: t }));
+    return true;
+  } catch { return false; }
+}
+
 // ---------- 划词弹窗配置(与 windows/xuanci_helper.ps1 的 DEFAULTS 保持一致) ----------
 // Windows 划词助手读 windows/xuanci_config.json;
 // macOS 不写 app 包内部(会破坏代码签名), 改写到用户目录(该配置在 Mac 上不参与渲染)
@@ -45,6 +74,7 @@ const XUANCI_FILE = process.platform === 'win32'
   : path.join(os.homedir(), 'Library', 'Application Support', 'miaomiao-translator', 'xuanci_config.json');
 const XUANCI_DEFAULTS = {
   version: 3,
+  followTheme: true,
   width: 350,
   origFontSize: 14,
   transFontSize: 15,
@@ -90,6 +120,7 @@ function writeXuanciConfig(raw) {
     for (const k of ['bgColor', 'copyColor', 'closeColor', 'origColor', 'transColor']) {
       if (typeof raw[k] === 'string' && HEX_RE.test(raw[k])) out[k] = raw[k].toUpperCase();
     }
+    out.followTheme = raw.followTheme !== false;   // 默认跟随页面主题
     out.version = 3;
     fs.mkdirSync(path.dirname(XUANCI_FILE), { recursive: true });
     fs.writeFileSync(XUANCI_FILE, JSON.stringify(out, null, 2));
@@ -345,6 +376,10 @@ const server = http.createServer(async (req, res) => {
       result.engine = 'dict';
       result.note = degraded ? resultNote : (result.note || undefined);
       result.ms = Date.now() - t0;
+      // 带上页面当前主题与对应弹窗配色, 让划词弹窗跟随页面主题
+      const theme = getUiTheme();
+      result.uiTheme = theme;
+      result.themePalette = THEME_PALETTES[theme];
       return sendJson(res, 200, result);
     }
 
@@ -360,6 +395,20 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, ok ? 200 : 500, { enabled: getSelectionMode() });
       }
       return sendJson(res, 200, { enabled: getSelectionMode() });
+    }
+
+    // ---------- 页面主题（划词弹窗跟随） ----------
+    if (p === '/api/ui-theme') {
+      if (req.method === 'POST') {
+        const origin = req.headers.origin || '';
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) {
+          return sendJson(res, 403, { error: '跨源请求被拒绝' });
+        }
+        const body = JSON.parse((await readBody(req)) || '{}');
+        const ok = setUiTheme(String(body.theme || ''));
+        return sendJson(res, ok ? 200 : 400, ok ? { theme: getUiTheme() } : { error: '无效主题' });
+      }
+      return sendJson(res, 200, { theme: getUiTheme(), palette: THEME_PALETTES[getUiTheme()] });
     }
 
     // ---------- 划词弹窗配置（网页版设置页读写 windows/xuanci_config.json） ----------
@@ -393,6 +442,10 @@ const server = http.createServer(async (req, res) => {
         return r.text;
       }));
       result.ms = Date.now() - t0;
+      // 带上页面当前主题与对应的弹窗配色(划词弹窗跟随页面主题)
+      const uiTheme = getUiTheme();
+      result.uiTheme = uiTheme;
+      result.themePalette = THEME_PALETTES[uiTheme];
       return sendJson(res, 200, result);
     }
 

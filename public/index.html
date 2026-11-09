@@ -380,11 +380,16 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
         <button class="settings-close" id="settingsClose" title="关闭">✕</button>
       </div>
       <div class="settings-body">
-        <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="2"><span class="set-val" id="setWidthVal"></span></div>
+        <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="10"><span class="set-val" id="setWidthVal"></span></div>
         <div class="set-row"><label>划词字号</label><input type="range" id="setOrigFont" min="10" max="24"><span class="set-val" id="setOrigFontVal"></span></div>
         <div class="set-row"><label>翻译字号</label><input type="range" id="setTransFont" min="10" max="24"><span class="set-val" id="setTransFontVal"></span></div>
-        <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28"><span class="set-val" id="setRadiusVal"></span></div>
+        <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28" step="2"><span class="set-val" id="setRadiusVal"></span></div>
         <div class="settings-divider"></div>
+        <div class="set-row"><label>颜色</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer">
+            <input type="checkbox" id="setFollowTheme" checked> 跟随页面主题（推荐）
+          </label><span class="set-val"></span>
+        </div>
         <div class="set-row"><label>背景颜色</label><input type="color" id="setBgColor"><span class="set-val"></span></div>
         <div class="set-row"><label>复制键颜色</label><input type="color" id="setCopyColor"><span class="set-val"></span></div>
         <div class="set-row"><label>关闭键颜色</label><input type="color" id="setCloseColor"><span class="set-val"></span></div>
@@ -412,6 +417,16 @@ updateSettingsBtnLabel();
 // 主题由 app 注入 data-theme 属性 → 属性变化时自动更新按钮文字
 new MutationObserver(updateSettingsBtnLabel).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+// 把当前页面主题同步给服务端, 让划词弹窗跟随页面主题
+function syncUiTheme(t) {
+  try {
+    fetch('/api/ui-theme', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: t }),
+    }).catch(() => {});
+  } catch {}
+}
+
 // 是否为 Mac 应用内（有原生桥接 → 主题由 app 设置面板控制）
 const IN_MAC_APP = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.miaomiaoOpenSettings);
 const THEME_KEY = 'miaomiao-theme';
@@ -427,7 +442,10 @@ if (!IN_MAC_APP) {
       const t = sel.value;
       document.documentElement.setAttribute('data-theme', t);
       try { localStorage.setItem(THEME_KEY, t); } catch {}
+      syncUiTheme(t);
     });
+    // 启动时也同步一次
+    syncUiTheme(document.documentElement.getAttribute('data-theme') || 'apple');
   }
 } else {
   // Mac 应用内：隐藏页面主题下拉框（用 app 自己的设置面板）
@@ -436,7 +454,7 @@ if (!IN_MAC_APP) {
 }
 
 // ---------- 划词弹窗设置（网页版，风格与页面一致） ----------
-const XC_DEFAULTS = { width:350, origFontSize:14, transFontSize:15, opacity:0.98, radius:16,
+const XC_DEFAULTS = { followTheme:true, width:350, origFontSize:14, transFontSize:15, opacity:0.98, radius:16,
   bgColor:'#FFFDF7', copyColor:'#FF3B30', closeColor:'#F0EAE0', origColor:'#1D1D1F', transColor:'#C0392B' };
 
 function setSliderPair(rangeId, valId, value, suffix) {
@@ -446,6 +464,16 @@ function setSliderPair(rangeId, valId, value, suffix) {
   if (v) v.textContent = value + (suffix || '');
   r.oninput = () => { if (v) v.textContent = r.value + (suffix || ''); };
 }
+function applyFollowThemeUI() {
+  const on = $('#setFollowTheme') ? $('#setFollowTheme').checked : true;
+  ['setBgColor', 'setCopyColor', 'setCloseColor', 'setOrigColor', 'setTransColor'].forEach(id => {
+    const el = $('#' + id);
+    if (!el) return;
+    el.disabled = on;
+    el.style.opacity = on ? '0.45' : '1';
+  });
+}
+
 function fillSettings(cfg) {
   setSliderPair('setWidth', 'setWidthVal', cfg.width, ' px');
   setSliderPair('setOrigFont', 'setOrigFontVal', cfg.origFontSize, ' pt');
@@ -456,6 +484,8 @@ function fillSettings(cfg) {
   $('#setCloseColor').value = cfg.closeColor;
   $('#setOrigColor').value = cfg.origColor;
   $('#setTransColor').value = cfg.transColor;
+  if ($('#setFollowTheme')) $('#setFollowTheme').checked = (cfg.followTheme !== false);
+  applyFollowThemeUI();
 }
 function readSettings() {
   return {
@@ -468,6 +498,7 @@ function readSettings() {
     closeColor: $('#setCloseColor').value.toUpperCase(),
     origColor: $('#setOrigColor').value.toUpperCase(),
     transColor: $('#setTransColor').value.toUpperCase(),
+    followTheme: $('#setFollowTheme') ? $('#setFollowTheme').checked : true,
   };
 }
 async function openSettingsPanel() {
@@ -479,7 +510,8 @@ async function openSettingsPanel() {
 }
 $('#settingsClose')?.addEventListener('click', () => { $('#settingsMask').hidden = true; });
 $('#settingsMask')?.addEventListener('click', (e) => { if (e.target === $('#settingsMask')) $('#settingsMask').hidden = true; });
-$('#settingsReset')?.addEventListener('click', () => fillSettings(XC_DEFAULTS));
+$('#setFollowTheme')?.addEventListener('change', applyFollowThemeUI);
+$('#settingsReset')?.addEventListener('click', () => fillSettings(Object.assign({}, XC_DEFAULTS, { followTheme: true })));
 $('#settingsSave')?.addEventListener('click', async () => {
   const btn = $('#settingsSave');
   try {
