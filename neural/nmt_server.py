@@ -27,6 +27,32 @@ FALLBACK = {
 device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 _loaded = {}
 
+def _ascii_safe_dir(model_dir):
+    """Windows 下 sentencepiece 的 C++ 加载器不认中文路径（Illegal byte sequence）。
+    若模型目录含非 ASCII 字符，则把模型文件复制/硬链接到临时纯英文目录再加载。"""
+    if not model_dir or all(ord(c) < 128 for c in str(model_dir)):
+        return model_dir
+    import tempfile, shutil, hashlib
+    tag = hashlib.md5(str(model_dir).encode('utf-8')).hexdigest()[:10]
+    dst = os.path.join(tempfile.gettempdir(), 'miaomiao-model-' + tag)
+    need = ['config.json', 'pytorch_model.bin', 'source.spm', 'target.spm', 'vocab.json', 'generation_config.json']
+    if not all(os.path.exists(os.path.join(dst, f)) for f in need if os.path.exists(os.path.join(model_dir, f))):
+        os.makedirs(dst, exist_ok=True)
+        for f in os.listdir(model_dir):
+            src = os.path.join(model_dir, f)
+            if not os.path.isfile(src):
+                continue
+            tgt = os.path.join(dst, f)
+            if os.path.exists(tgt):
+                continue
+            try:
+                os.link(src, tgt)          # 硬链接(同盘, 不占额外空间)
+            except Exception:
+                shutil.copy2(src, tgt)     # 跨盘/无权限 → 复制
+        print(f'[路径含中文] 模型已映射到纯英文目录: {dst}', flush=True)
+    return dst
+
+
 def get_model(direction):
     if direction in _loaded:
         return _loaded[direction]
@@ -35,6 +61,7 @@ def get_model(direction):
     if not (model_dir and os.path.exists(os.path.join(model_dir, 'pytorch_model.bin'))):
         model_dir = FALLBACK.get(direction)
         print(f'[{direction}] 使用预训练回退: {model_dir}', flush=True)
+    model_dir = _ascii_safe_dir(model_dir)
     model = MarianMTModel.from_pretrained(model_dir).to(device)
     tok = MarianTokenizer.from_pretrained(model_dir)
     model.eval()
