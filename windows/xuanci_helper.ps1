@@ -29,7 +29,8 @@ $LOG = Join-Path $SCRIPT_DIR 'helper.log'
 function Log($msg) {
     try { Add-Content -Path $LOG -Value ("[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $msg) -Encoding UTF8 } catch {}
 }
-Log "=== 启动 PID=$PID ==="
+$SCRIPT_VERSION = 'win-v3 (2026-11 脚本作用域修复)'
+Log "=== 启动 PID=$PID 版本=$SCRIPT_VERSION ==="
 
 # 单实例互斥锁: 防止重复启动导致双弹窗/循环翻译
 $singletonMutex = New-Object System.Threading.Mutex($false, 'MiaomiaoXuanciHelper')
