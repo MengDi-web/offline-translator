@@ -52,22 +52,25 @@ $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 
 # ---------- 默认配置 ----------
 $DEFAULTS = @{
+    version = 2              # 配色版本: 2 = 与页面红苹果主题一致
     width = 350
     origFontSize = 14
     transFontSize = 15
-    opacity = 0.65
-    radius = 20
-    bgColor = '#000000'    # 黑底
-    copyColor = '#FBF6EC'  # 米黄按键
-    closeColor = '#FFFFFF' # 白关闭键
-    origColor = '#FF3B30'  # 苹果红原文字
-    transColor = '#FBF6EC' # 米黄译文
+    opacity = 0.98
+    radius = 16
+    bgColor = '#FFFDF7'      # 页面卡片米白
+    copyColor = '#FF3B30'    # 苹果红按键
+    closeColor = '#F0EAE0'   # 淡灰关闭键
+    origColor = '#1D1D1F'    # 深色原文
+    transColor = '#C0392B'   # 深红译文
 }
 
 function Load-Config {
     if (Test-Path $CONFIG_PATH) {
         try {
             $j = Get-Content $CONFIG_PATH -Raw -Encoding UTF8 | ConvertFrom-Json
+            # 旧版配色(version<2)直接重置, 保证首次看到的是与页面一致的主题
+            if ($j.version -ne 2) { return $DEFAULTS.Clone() }
             $cfg = @{}
             foreach ($k in $DEFAULTS.Keys) { $cfg[$k] = if ($null -ne $j.$k) { $j.$k } else { $DEFAULTS[$k] } }
             return $cfg
@@ -168,6 +171,7 @@ function Show-Popup($resp) {
     $title = New-Object System.Windows.Forms.Label
     $title.AutoSize = $false
     $title.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', [float]$cfg.origFontSize, [System.Drawing.FontStyle]::Bold)
+    $title.Height = [int][Math]::Ceiling($title.Font.GetHeight()) + 16   # 修复原文只显示上半部分
     $title.ForeColor = HexToColor $cfg.origColor
     $title.Padding = New-Object System.Windows.Forms.Padding(14,10,14,0)
     $title.AutoEllipsis = $true
@@ -306,6 +310,14 @@ function Show-Popup($resp) {
     $f.Location = New-Object System.Drawing.Point($x, $y)
 
     $script:popupForm = $f
+    # 关闭后清空"已处理"记录, 以便同一段文本可以再次划词
+    $f.Add_Paint({
+        param($sender, $e)
+        $pen = New-Object System.Drawing.Pen((HexToColor '#E8DFCF'), 1)
+        try { $e.Graphics.DrawRectangle($pen, 0, 0, $sender.ClientSize.Width - 1, $sender.ClientSize.Height - 1) }
+        finally { $pen.Dispose() }
+    })
+    $f.Add_FormClosed({ $script:lastSeen = $null })
     $f.Show()
     $f.BringToFront()
 }
@@ -366,9 +378,10 @@ function Show-Settings {
     $sf.Text = 'miaomiao翻译器 · 设置'
     $sf.FormBorderStyle = 'FixedDialog'
     $sf.StartPosition = 'CenterScreen'
-    $sf.ClientSize = New-Object System.Drawing.Size(380, 396)
-    $sf.BackColor = HexToColor $cfg.bgColor
-    $sf.ForeColor = [System.Drawing.Color]::White
+    $sf.ClientSize = New-Object System.Drawing.Size(380, 452)
+    $sf.BackColor = HexToColor '#F6F1E7'
+    $sf.ForeColor = HexToColor '#1D1D1F'
+    $sf.Padding = New-Object System.Windows.Forms.Padding(8)
 
     # 控件统一放脚本作用域: PowerShell 事件处理器访问不到函数内的局部变量
     $script:stForm = $sf
@@ -378,16 +391,16 @@ function Show-Settings {
     function Add-Slider($parent, $y, $labelText, $min, $max, $value, $tag) {
         $lbl = New-Object System.Windows.Forms.Label
         $lbl.Text = $labelText; $lbl.SetBounds(16, $y, 96, 22)
-        $lbl.ForeColor = [System.Drawing.Color]::White
+        $lbl.ForeColor = HexToColor '#1D1D1F'
         $trk = New-Object System.Windows.Forms.TrackBar
         $trk.SetBounds(116, $y, 170, 30)
         $trk.Maximum = [int]$max; $trk.Minimum = [int]$min
         $trk.Value = [Math]::Min([Math]::Max([int]$value, [int]$min), [int]$max)
         $trk.Tag = [string]$tag
-        $trk.BackColor = HexToColor $cfg.bgColor
+        $trk.BackColor = HexToColor '#F6F1E7'
         $val = New-Object System.Windows.Forms.Label
         $val.Text = "$($trk.Value)"; $val.SetBounds(294, $y, 52, 22)
-        $val.ForeColor = [System.Drawing.Color]::White
+        $val.ForeColor = HexToColor '#1D1D1F'
         $script:stTrack[[string]$tag] = $trk
         $script:stValLbl[[string]$tag] = $val
         $trk.Add_ValueChanged({
@@ -408,7 +421,7 @@ function Show-Settings {
     function Add-ColorBtn($parent, $y, $labelText, $colorKey) {
         $lbl = New-Object System.Windows.Forms.Label
         $lbl.Text = $labelText; $lbl.SetBounds(16, $y, 96, 24)
-        $lbl.ForeColor = [System.Drawing.Color]::White
+        $lbl.ForeColor = HexToColor '#1D1D1F'
         $btn = New-Object System.Windows.Forms.Button
         $btn.Tag = [string]$colorKey
         $btn.Text = '选择颜色'; $btn.SetBounds(116, $y, 100, 26)
@@ -439,7 +452,7 @@ function Show-Settings {
 
     $okBtn = New-Object System.Windows.Forms.Button
     $okBtn.Text = '保存'
-    $okBtn.SetBounds(296, 360, 68, 28)
+    $okBtn.SetBounds(296, 412, 68, 30)
     $okBtn.FlatStyle = 'Flat'
     $okBtn.BackColor = HexToColor $cfg.copyColor
     $okBtn.ForeColor = Get-ContrastText $okBtn.BackColor
@@ -457,7 +470,7 @@ function Show-Settings {
 
     $cancelBtn = New-Object System.Windows.Forms.Button
     $cancelBtn.Text = '取消'
-    $cancelBtn.SetBounds(224, 360, 64, 28)
+    $cancelBtn.SetBounds(222, 412, 64, 30)
     $cancelBtn.FlatStyle = 'Flat'
     $cancelBtn.BackColor = HexToColor $cfg.closeColor
     $cancelBtn.ForeColor = Get-ContrastText $cancelBtn.BackColor
