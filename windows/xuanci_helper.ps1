@@ -266,7 +266,8 @@ function Show-Popup($resp) {
     $title.Top = 0; $title.Left = 0
     $bodyLbl.Top = $title.Height; $bodyLbl.Left = 0
     $bodyLbl.Height = [Math]::Min(360, [Math]::Max(40, [int]($bodyLbl.PreferredHeight + 12)))
-    $f.ClientSize = New-Object System.Drawing.Size($w, $bodyLbl.Bottom + 40)
+    $popupH = [int]($bodyLbl.Bottom) + 40
+    $f.ClientSize = New-Object System.Drawing.Size($w, $popupH)
     $copyBtn.SetBounds(14, $bodyLbl.Bottom + 6, 90, 28)
     $settingsBtn.SetBounds(110, $bodyLbl.Bottom + 6, 64, 28)
     $closeBtn.SetBounds($w - 46, $bodyLbl.Bottom + 6, 32, 28)
