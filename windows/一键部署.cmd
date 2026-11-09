@@ -17,6 +17,10 @@ echo.
 
 REM ---------- 1. 便携版 Node ----------
 if not exist "runtime\node\node.exe" (
+    if exist "offline\node-v22.14.0-win-x64.zip" (
+        echo [1/4] 使用内置便携版 Node.js（离线，无需联网）
+        copy /y "offline\node-v22.14.0-win-x64.zip" "%TEMP%\miaomiao-node.zip" >nul
+    ) else (
     echo [1/4] 下载便携版 Node.js ...
     curl.exe -sfL --retry 3 --retry-all-errors -o "%TEMP%\miaomiao-node.zip" "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip"
     if not exist "%TEMP%\miaomiao-node.zip" (
@@ -41,6 +45,7 @@ if not exist "runtime\node\node.exe" (
         pause
         exit /b 1
     )
+    )
     powershell -NoProfile -Command "Expand-Archive '%TEMP%\miaomiao-node.zip' -DestinationPath 'runtime' -Force; if (Test-Path 'runtime\node-v22.14.0-win-x64') { Move-Item 'runtime\node-v22.14.0-win-x64' 'runtime\node' -Force }"
 ) else (
     echo [1/4] Node 已就绪
@@ -50,6 +55,10 @@ set "PATH=%CD%\runtime\node;%PATH%"
 REM ---------- 2. Python（未安装则静默安装） ----------
 python --version >nul 2>&1
 if errorlevel 1 (
+    if exist "offline\python-3.12.0-amd64.exe" (
+        echo [2/4] 使用内置 Python 安装包（离线，无需联网）
+        copy /y "offline\python-3.12.0-amd64.exe" "%TEMP%\miaomiao-python.exe" >nul
+    ) else (
     echo [2/4] 未检测到 Python，正在下载并静默安装（约 3 分钟，无需操作）...
     curl.exe -sfL --retry 3 --retry-all-errors -o "%TEMP%\miaomiao-python.exe" "https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe"
     if not exist "%TEMP%\miaomiao-python.exe" (
@@ -74,6 +83,7 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
+    )
     "%TEMP%\miaomiao-python.exe" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_doc=0
     rem 刷新 PATH
     set "PATH=%LocalAppData%\Programs\Python\Python312;%LocalAppData%\Programs\Python\Python312\Scripts;%PATH%"
@@ -85,9 +95,19 @@ REM ---------- 3. Python 环境 + 神经依赖 ----------
 if not exist "neural\.venv\Scripts\python.exe" (
     echo [3/4] 创建翻译环境并安装依赖（首次约 5-10 分钟，请耐心等待）...
     python -m venv neural\.venv
-    neural\.venv\Scripts\python -m pip install --upgrade pip -q
-    neural\.venv\Scripts\pip install -q torch --index-url https://download.pytorch.org/whl/cpu
-    neural\.venv\Scripts\pip install -q transformers sentencepiece sacrebleu numpy
+    if exist "wheels" (
+        echo        检测到内置依赖包，本地离线安装（无需联网）...
+        neural\.venv\Scripts\python -m pip install --no-index --find-links "wheels" torch transformers sentencepiece sacrebleu numpy
+    ) else (
+        neural\.venv\Scripts\python -m pip install --upgrade pip -q
+        neural\.venv\Scripts\pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+        neural\.venv\Scripts\pip install -q transformers sentencepiece sacrebleu numpy
+    )
+    if errorlevel 1 (
+        echo [错误] 依赖安装失败（网络问题或依赖包缺失），请重试
+        pause
+        exit /b 1
+    )
 ) else (
     echo [3/4] 翻译环境已就绪
 )

@@ -19,6 +19,24 @@ rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' \
   /tmp/win-full/
 rm -f "/tmp/win-full/neural/models/opus-mt-zh-en-ft/opus-mt-zh-en-ft-pytorch_model.bin" \
       "/tmp/win-full/neural/models/opus-mt-en-zh-ft/opus-mt-en-zh-ft-pytorch_model.bin"
+# 内置 Windows Python 依赖 wheel（离线安装，无需联网）
+WHEELS="$ROOT/dist/wheels-win"
+if [ ! -d "$WHEELS" ] || [ -z "$(ls "$WHEELS"/*.whl 2>/dev/null)" ]; then
+  echo "   下载 Windows 依赖 wheel（仅构建机需要联网）..."
+  mkdir -p "$WHEELS"
+  python3 -m pip download torch --index-url https://download.pytorch.org/whl/cpu \
+    --platform win_amd64 --python-version 312 --only-binary=:all: -d "$WHEELS" -q
+  python3 -m pip download transformers sentencepiece sacrebleu \
+    --platform win_amd64 --python-version 312 --only-binary=:all: -d "$WHEELS" -q
+fi
+cp -R "$WHEELS" /tmp/win-full/wheels
+
+# 内置 Node / Python 运行时（完全离线安装）
+OFFLINE="$ROOT/dist/offline-win"
+if [ -d "$OFFLINE" ] && [ -n "$(ls "$OFFLINE"/* 2>/dev/null)" ]; then
+  mkdir -p /tmp/win-full/offline && cp "$OFFLINE"/* /tmp/win-full/offline/
+fi
+
 rm -f "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
 python3 "$ROOT/tools/zip-utf8.py" /tmp/win-full "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
 
@@ -72,8 +90,8 @@ Windows 安装说明 —— 2 步 + 每次 1 步
 【第一次，约 5-10 分钟】
 1. 先解压整个压缩包到文件夹（右键 → 全部解压；不要在压缩包里直接双击）
 2. 进入解压出的文件夹 → windows → 双击「一键部署.cmd」
-   - 自动下载 Node / Python（国内镜像，SHA-256 校验）
-   - 翻译模型已内置在本压缩包里，无需额外下载
+   【完全离线】翻译模型、Python 依赖、Node 和 Python 运行时全部内置，
+   全程无需联网，不会卡在下载，约 5-10 分钟装完。
 
 【以后每次使用】
 1. 双击 windows\启动翻译器.bat → 保持黑色窗口打开
