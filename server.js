@@ -16,6 +16,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { URL } = require('url');
 const { spawn } = require('child_process');
 
@@ -37,7 +38,11 @@ function getSelectionMode() {
   return false;   // 默认关闭，需在网页点「开启一键划词」
 }
 // ---------- 划词弹窗配置(与 windows/xuanci_helper.ps1 的 DEFAULTS 保持一致) ----------
-const XUANCI_FILE = path.join(ROOT, 'windows', 'xuanci_config.json');
+// Windows 划词助手读 windows/xuanci_config.json;
+// macOS 不写 app 包内部(会破坏代码签名), 改写到用户目录(该配置在 Mac 上不参与渲染)
+const XUANCI_FILE = process.platform === 'win32'
+  ? path.join(ROOT, 'windows', 'xuanci_config.json')
+  : path.join(os.homedir(), 'Library', 'Application Support', 'miaomiao-translator', 'xuanci_config.json');
 const XUANCI_DEFAULTS = {
   version: 2,
   width: 350,

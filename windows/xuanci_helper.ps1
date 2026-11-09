@@ -231,7 +231,10 @@ function Show-Popup($resp) {
             if ($resp.translation) { $bodyLbl.Text = [string]$resp.translation; $script:copyPayload = [string]$resp.translation }
             elseif ($resp.bestSense.sense) { $bodyLbl.Text = '● ' + $resp.bestSense.sense; $script:copyPayload = [string]$resp.bestSense.sense }
             elseif ($resp.dictSenses) { $bodyLbl.Text = ($resp.dictSenses -join '  |  '); $script:copyPayload = ($resp.dictSenses -join ' | ') }
-            if ($resp.contextTranslation) { $bodyLbl.Text += "`n语境: $($resp.contextTranslation)" }
+            if ($resp.contextTranslation) {
+                if ($bodyLbl.Text) { $bodyLbl.Text += "`n语境: $($resp.contextTranslation)" }
+                else { $bodyLbl.Text = [string]$resp.contextTranslation; $script:copyPayload = [string]$resp.contextTranslation }
+            }
         }
     }
 
