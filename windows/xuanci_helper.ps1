@@ -7,7 +7,7 @@
 #   - PowerShell 5.1+ (Windows 10/11 自带; 必须是 powershell.exe 而非 pwsh, 需要 STA)
 #
 # 功能: 复制(Cmd+C)即弹窗翻译; 菜单栏托盘图标可开设置/退出;
-#       设置: 弹窗宽度/划词字号/翻译字号/背景色/背景不透明度/复制键色/关闭键色/圆角
+#       设置: 弹窗宽度/划词字号/翻译字号/圆角/背景色/复制键色/关闭键色/原文字色/译文文字色
 
 param([switch]$Debug)
 
@@ -45,6 +45,13 @@ $ErrorActionPreference = 'Stop'
 Log "加载 WinForms..."
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+# 剪贴板序列号: 每次"复制"都会 +1, 用于区分"重新复制了同样的文字"
+try {
+    Add-Type -Namespace MiaoNative -Name Clip -MemberDefinition @'
+[DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();
+'@
+    Log "剪贴板序列号 API 就绪"
+} catch { Log ("剪贴板序列号 API 失败: " + $_.Exception.Message) }
 Log "WinForms 就绪"
 
 $CONFIG_PATH = Join-Path $SCRIPT_DIR 'xuanci_config.json'
@@ -52,7 +59,7 @@ $SERVER = 'http://127.0.0.1:6688/api/context-translate'
 
 # ---------- 默认配置 ----------
 $DEFAULTS = @{
-    version = 2              # 配色版本: 2 = 与页面红苹果主题一致
+    version = 3              # 配色版本: 3 = 与页面红苹果主题一致
     width = 350
     origFontSize = 14
     transFontSize = 15
@@ -62,7 +69,7 @@ $DEFAULTS = @{
     copyColor = '#FF3B30'    # 苹果红按键
     closeColor = '#F0EAE0'   # 淡灰关闭键
     origColor = '#1D1D1F'    # 深色原文
-    transColor = '#C0392B'   # 深红译文
+    transColor = '#1D1D1F'   # 与页面正文同色
 }
 
 function Load-Config {
@@ -70,7 +77,7 @@ function Load-Config {
         try {
             $j = Get-Content $CONFIG_PATH -Raw -Encoding UTF8 | ConvertFrom-Json
             # 旧版配色(version<2)直接重置, 保证首次看到的是与页面一致的主题
-            if ($j.version -ne 2) { return $DEFAULTS.Clone() }
+            if ($j.version -ne 3) { return $DEFAULTS.Clone() }
             $cfg = @{}
             foreach ($k in $DEFAULTS.Keys) { $cfg[$k] = if ($null -ne $j.$k) { $j.$k } else { $DEFAULTS[$k] } }
             return $cfg
@@ -168,7 +175,7 @@ function Show-Popup($resp) {
     $f.ShowInTaskbar = $false
     $f.TopMost = $true
     $f.BackColor = HexToColor $cfg.bgColor
-    $f.Opacity = [double]$cfg.opacity
+    $f.Opacity = 1.0   # WinForms Opacity 会让文字一起变淡, 故固定不透明
 
     $title = New-Object System.Windows.Forms.Label
     $title.AutoSize = $false
@@ -322,7 +329,6 @@ function Show-Popup($resp) {
         try { $e.Graphics.DrawRectangle($pen, 0, 0, $sender.ClientSize.Width - 1, $sender.ClientSize.Height - 1) }
         finally { $pen.Dispose() }
     })
-    $f.Add_FormClosed({ $script:lastSeen = $null })
     $f.Show()
     $f.BringToFront()
 }
@@ -332,14 +338,22 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 250
 $timer.add_Tick({
     try {
+        # 用剪贴板序列号判断"新的复制": 同样文字重新复制能再弹, 关闭后不会反复跳
+        $seq = 0
+        try { $seq = [MiaoNative.Clip]::GetClipboardSequenceNumber() } catch { $seq = 0 }
+        if ($seq -ne 0) {
+            if ($seq -eq $script:lastClipSeq) { return }
+            $script:lastClipSeq = $seq
+        } else {
+            if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
+            $t0 = [System.Windows.Forms.Clipboard]::GetText()
+            if ($t0 -eq $script:lastSeen) { return }
+            $script:lastSeen = $t0
+        }
         if (-not [System.Windows.Forms.Clipboard]::ContainsText()) { return }
         $t = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
-        # 只处理「新复制」：内容与上次看到的一样就不再请求/弹窗。
-        # 旧逻辑靠 2 秒后重试，会把开启划词前就留在剪贴板里的旧内容补翻弹出来。
-        if ($t -eq $script:lastSeen) { return }
-        $script:lastSeen = $t
         if ($t -eq $script:lastText -and ($now - $script:lastCopyTime).TotalSeconds -lt 2) { return }
         Log ("剪贴板文本({0}字符): {1}" -f $t.Length, $t.Substring(0, [Math]::Min(30, $t.Length)))
         if (Test-Garbled $t) {
@@ -370,6 +384,7 @@ $script:lastText = ''
 $script:lastCopyTime = [DateTime]::MinValue
 # 启动时的基线：开启前就躺在剪贴板里的内容不算一次新划词
 $script:lastSeen = $null
+$script:lastClipSeq = 0
 try {
     if ([System.Windows.Forms.Clipboard]::ContainsText()) {
         $script:lastSeen = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
@@ -387,6 +402,7 @@ function Show-Settings {
     $sf.BackColor = HexToColor '#F6F1E7'
     $sf.ForeColor = HexToColor '#1D1D1F'
     $sf.Padding = New-Object System.Windows.Forms.Padding(8)
+    $sf.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)   # 统一字体, 消除点阵像素感
 
     # 控件统一放脚本作用域: PowerShell 事件处理器访问不到函数内的局部变量
     $script:stForm = $sf
@@ -420,7 +436,6 @@ function Show-Settings {
     Add-Slider $sf 12 '弹窗宽度' 260 560 $cfg.width 'width' | Out-Null
     Add-Slider $sf 52 '划词字号' 10 24 $cfg.origFontSize 'origFontSize' | Out-Null
     Add-Slider $sf 92 '翻译字号' 10 24 $cfg.transFontSize 'transFontSize' | Out-Null
-    Add-Slider $sf 132 '背景不透明度' 30 100 ([int]($cfg.opacity * 100)) 'opacity' | Out-Null
     Add-Slider $sf 172 '圆角弧度' 0 28 $cfg.radius 'radius' | Out-Null
 
     function Add-ColorBtn($parent, $y, $labelText, $colorKey) {
@@ -466,7 +481,6 @@ function Show-Settings {
         $cfg.width = $script:stTrack['width'].Value
         $cfg.origFontSize = $script:stTrack['origFontSize'].Value
         $cfg.transFontSize = $script:stTrack['transFontSize'].Value
-        $cfg.opacity = ($script:stTrack['opacity'].Value / 100.0)
         $cfg.radius = $script:stTrack['radius'].Value
         Save-Config $cfg
         $script:stForm.Close()

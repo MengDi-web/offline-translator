@@ -383,7 +383,6 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
         <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="2"><span class="set-val" id="setWidthVal"></span></div>
         <div class="set-row"><label>划词字号</label><input type="range" id="setOrigFont" min="10" max="24"><span class="set-val" id="setOrigFontVal"></span></div>
         <div class="set-row"><label>翻译字号</label><input type="range" id="setTransFont" min="10" max="24"><span class="set-val" id="setTransFontVal"></span></div>
-        <div class="set-row"><label>背景不透明度</label><input type="range" id="setOpacity" min="30" max="100"><span class="set-val" id="setOpacityVal"></span></div>
         <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28"><span class="set-val" id="setRadiusVal"></span></div>
         <div class="settings-divider"></div>
         <div class="set-row"><label>背景颜色</label><input type="color" id="setBgColor"><span class="set-val"></span></div>
@@ -451,7 +450,6 @@ function fillSettings(cfg) {
   setSliderPair('setWidth', 'setWidthVal', cfg.width, ' px');
   setSliderPair('setOrigFont', 'setOrigFontVal', cfg.origFontSize, ' pt');
   setSliderPair('setTransFont', 'setTransFontVal', cfg.transFontSize, ' pt');
-  setSliderPair('setOpacity', 'setOpacityVal', Math.round(cfg.opacity * 100), '%');
   setSliderPair('setRadius', 'setRadiusVal', cfg.radius, ' px');
   $('#setBgColor').value = cfg.bgColor;
   $('#setCopyColor').value = cfg.copyColor;
@@ -464,7 +462,6 @@ function readSettings() {
     width: parseInt($('#setWidth').value, 10),
     origFontSize: parseInt($('#setOrigFont').value, 10),
     transFontSize: parseInt($('#setTransFont').value, 10),
-    opacity: parseInt($('#setOpacity').value, 10) / 100,
     radius: parseInt($('#setRadius').value, 10),
     bgColor: $('#setBgColor').value.toUpperCase(),
     copyColor: $('#setCopyColor').value.toUpperCase(),
