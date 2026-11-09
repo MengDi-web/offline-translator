@@ -263,7 +263,42 @@ function sanitizeNmtOutput(text) {
 
 /** 代码/标记片段占位保护：翻译前把反引号代码、URL、<...> 换成 CODE0/CODE1…
  *  翻译后再还原，避免模型对符号密集片段输出退化乱码。 */
+/** 长文本按句切块(默认 80 字符/块): 模型对长段落的输出会提前停止(实测 ~4 句),
+ *  导致结尾(或开头)整句丢失。切块后逐块翻译再拼接。 */
+function splitForNmt(text, maxChars = 50) {
+  const s = String(text || '').trim();
+  if (!s) return [s];
+  if (s.length <= maxChars) return [s];
+  const parts = s.split(/(?<=[。！？!?；;\n])|(?<=[.!?]\s)/).filter((x) => x && x.trim());
+  const chunks = [];
+  let cur = '';
+  for (const p of parts) {
+    if (cur && (cur + p).length > maxChars) { chunks.push(cur); cur = ''; }
+    cur += p;
+    while (cur.length > maxChars * 2) {   // 单句超长 → 硬切
+      chunks.push(cur.slice(0, maxChars));
+      cur = cur.slice(maxChars);
+    }
+  }
+  if (cur.trim()) chunks.push(cur);
+  return chunks.length ? chunks : [s];
+}
+
 function safeNmtTranslate(text, dir) {
+  const chunks = splitForNmt(text);
+  if (chunks.length > 1) {
+    // 逐块翻译后拼接(串行, 避免同时压满 CPU)
+    return chunks.reduce((accP, chunk) => accP.then(async (acc) => {
+      if (acc.error) return acc;
+      const r = await safeNmtTranslateOne(chunk, dir);
+      if (r.error) return r;
+      return { text: acc.text ? (acc.text + ' ' + r.text) : r.text };
+    }), Promise.resolve({ text: '' }));
+  }
+  return safeNmtTranslateOne(text, dir);
+}
+
+function safeNmtTranslateOne(text, dir) {
   const segs = [];
   const protectedText = String(text).replace(/`[^`]*`|https?:\/\/\S+|<\S+>/g, (m) => {
     segs.push(m);

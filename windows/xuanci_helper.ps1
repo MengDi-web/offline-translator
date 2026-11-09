@@ -363,8 +363,19 @@ function Show-Popup($resp) {
         try { $e.Graphics.DrawRectangle($pen, 0, 0, $sender.ClientSize.Width - 1, $sender.ClientSize.Height - 1) }
         finally { $pen.Dispose() }
     })
+    $f.Add_Shown({
+        param($sender, $e)
+        # 弹窗出现时文本框会默认全选(蓝色选中态) → 取消选中
+        try { $bodyLbl.SelectionStart = 0; $bodyLbl.SelectionLength = 0 } catch {}
+    })
+    # 再次获得焦点时也不选中
+    $bodyLbl.Add_GotFocus({
+        param($sender, $e)
+        try { $sender.SelectionLength = 0 } catch {}
+    })
     $f.Show()
     $f.BringToFront()
+    try { $bodyLbl.SelectionStart = 0; $bodyLbl.SelectionLength = 0 } catch {}
 }
 
 # ---------- 剪贴板监听（STA 必需；用 add_Tick 同 runspace 处理，避免跨会话作用域问题） ----------
