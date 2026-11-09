@@ -457,6 +457,8 @@ function Show-Settings {
         $trk.Maximum = [int]$max; $trk.Minimum = [int]$min
         $trk.Value = [Math]::Min([Math]::Max([int]$value, [int]$min), [int]$max)
         $trk.Tag = [string]$tag
+        $trk.SmallChange = 1          # 微调精度 1
+        $trk.LargeChange = 10         # 拖动时的跳跃幅度
         $trk.BackColor = HexToColor '#F6F1E7'
         $val = New-Object System.Windows.Forms.Label
         $val.Text = "$($trk.Value)"; $val.SetBounds(294, $y, 52, 22)
