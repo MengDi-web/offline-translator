@@ -91,6 +91,12 @@ function HexToColor($hex) {
 function ToHexColor($c) {
     return ('#{0:X2}{1:X2}{2:X2}' -f $c.R, $c.G, $c.B)
 }
+# 按背景亮度选择文字颜色, 避免白字+浅底看不清
+function Get-ContrastText($bg) {
+    $lum = 0.299 * $bg.R + 0.587 * $bg.G + 0.114 * $bg.B
+    if ($lum -gt 150) { return [System.Drawing.Color]::FromArgb(50, 45, 40) }
+    return [System.Drawing.Color]::White
+}
 
 # ---------- PDF 断行归一化 ----------
 function Normalize-Wrapped($text) {
@@ -176,7 +182,7 @@ function Show-Popup($resp) {
     $copyBtn.Text = '复制译文'
     $copyBtn.FlatStyle = 'Flat'
     $copyBtn.BackColor = HexToColor $cfg.copyColor
-    $copyBtn.ForeColor = [System.Drawing.Color]::White
+    $copyBtn.ForeColor = Get-ContrastText $copyBtn.BackColor
     $copyBtn.FlatAppearance.BorderSize = 0
     $copyBtn.Cursor = 'Hand'
 
@@ -184,16 +190,18 @@ function Show-Popup($resp) {
     $settingsBtn.Text = '设置'
     $settingsBtn.FlatStyle = 'Flat'
     $settingsBtn.BackColor = HexToColor $cfg.copyColor
-    $settingsBtn.ForeColor = [System.Drawing.Color]::White
+    $settingsBtn.ForeColor = Get-ContrastText $settingsBtn.BackColor
     $settingsBtn.FlatAppearance.BorderSize = 0
     $settingsBtn.Cursor = 'Hand'
-    $settingsBtn.Add_Click({ Show-Settings })
+    $settingsBtn.Add_Click({
+        try { Show-Settings } catch { Log ("打开设置失败: " + $_.Exception.Message) }
+    })
 
     $closeBtn = New-Object System.Windows.Forms.Button
     $closeBtn.Text = '✕'
     $closeBtn.FlatStyle = 'Flat'
     $closeBtn.BackColor = HexToColor $cfg.closeColor
-    $closeBtn.ForeColor = [System.Drawing.Color]::White
+    $closeBtn.ForeColor = Get-ContrastText $closeBtn.BackColor
     $closeBtn.FlatAppearance.BorderSize = 0
     $closeBtn.Cursor = 'Hand'
 
@@ -363,7 +371,8 @@ function Show-Settings {
         $lbl.Text = $labelText; $lbl.SetBounds(14, $y, 90, 22)
         $trk = New-Object System.Windows.Forms.TrackBar
         $trk.SetBounds(110, $y, 170, 30)
-        $trk.Minimum = $min; $trk.Maximum = $max; $trk.Value = $value
+        $trk.Maximum = [int]$max; $trk.Minimum = [int]$min
+        $trk.Value = [Math]::Min([Math]::Max([int]$value, [int]$min), [int]$max)
         $val = New-Object System.Windows.Forms.Label
         $val.Text = "$value"; $val.SetBounds(290, $y, 50, 22)
         $trk.Add_ValueChanged({ $val.Text = "$($trk.Value)" })
@@ -422,7 +431,9 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $itemSettings = $menu.Items.Add('设置…')
 $itemExit = $menu.Items.Add('退出')
 $notify.ContextMenuStrip = $menu
-$itemSettings.Add_Click({ Show-Settings })
+$itemSettings.Add_Click({
+    try { Show-Settings } catch { Log ("托盘打开设置失败: " + $_.Exception.Message) }
+})
 $itemExit.Add_Click({ $timer.Stop(); $notify.Visible = $false; [System.Windows.Forms.Application]::Exit() })
 
 Write-Host 'miaomiao翻译助手已启动 —— 选中文字后按 Ctrl+C（复制）即弹窗翻译'
