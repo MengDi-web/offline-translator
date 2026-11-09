@@ -433,6 +433,28 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { enabled: getSelectionMode() });
     }
 
+    // ---------- 主题配色草稿（选配色工具保存, 供开发读取） ----------
+    if (p === '/api/theme-draft') {
+      const DRAFT = path.join(ROOT, 'data', 'theme-draft.json');
+      if (req.method === 'POST') {
+        const origin = req.headers.origin || '';
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) {
+          return sendJson(res, 403, { error: '跨源请求被拒绝' });
+        }
+        try {
+          const body = JSON.parse((await readBody(req)) || '{}');
+          fs.mkdirSync(path.dirname(DRAFT), { recursive: true });
+          fs.writeFileSync(DRAFT, JSON.stringify(body, null, 2));
+          return sendJson(res, 200, { ok: true, path: 'data/theme-draft.json' });
+        } catch (e) {
+          return sendJson(res, 500, { error: '保存失败: ' + e.message });
+        }
+      }
+      try {
+        return sendJson(res, 200, JSON.parse(fs.readFileSync(DRAFT, 'utf8')));
+      } catch { return sendJson(res, 200, {}); }
+    }
+
     // ---------- 页面主题（划词弹窗跟随） ----------
     if (p === '/api/ui-theme') {
       if (req.method === 'POST') {

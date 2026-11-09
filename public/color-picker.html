@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>miaomiao 配色选择器</title>
+<style>
+  :root { --bd:#e5ded2; --ink:#1d1d1f; --muted:#6e6e73; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+         background:#f6f1e7; color:var(--ink); padding:20px; }
+  .wrap { max-width:1060px; margin:0 auto; display:grid; grid-template-columns: 380px 1fr; gap:20px; }
+  h1 { font-size:18px; margin:0 0 12px; }
+  .card { background:#fffdf7; border:1px solid var(--bd); border-radius:14px; padding:16px; }
+  .group-title { font-size:12px; color:var(--muted); letter-spacing:.08em; margin:14px 0 8px; text-transform:uppercase; }
+  .row { display:grid; grid-template-columns: 1fr 56px 74px; align-items:center; gap:10px; margin:6px 0; font-size:13px; }
+  .row input[type=color] { width:100%; height:28px; border:1px solid var(--bd); border-radius:7px; padding:0; background:none; cursor:pointer; }
+  .row input[type=text] { width:100%; font:12px ui-monospace,monospace; padding:5px 7px; border:1px solid var(--bd); border-radius:7px; }
+  .actions { display:flex; gap:10px; margin-top:16px; }
+  button { flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--bd); background:#fffdf7; cursor:pointer; font-size:13px; font-weight:600; }
+  button.primary { background:#ff3b30; color:#fff; border-color:#ff3b30; }
+  button:hover { filter:brightness(1.04); }
+  .msg { font-size:12px; margin-top:10px; min-height:16px; color:#7cb342; }
+  /* 预览 */
+  .preview-page { border-radius:14px; padding:18px; border:1px solid; }
+  .pv-logo { width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px; }
+  .pv-card { border-radius:12px; padding:14px; margin-top:12px; border:1px solid; }
+  .pv-rough { font-size:19px; font-weight:600; margin:6px 0 10px; }
+  .pv-chip { display:inline-block; font-size:11px; padding:3px 10px; border-radius:999px; margin-right:6px; }
+  .pv-input { border-radius:10px; padding:10px; font-size:13px; border:1px solid; margin-top:8px; }
+  .pv-popup { margin-top:14px; border-radius:14px; padding:14px; border:1px solid; position:relative; }
+  .pv-popup .pv-t { font-size:14px; font-weight:700; }
+  .pv-popup .pv-b { font-size:15px; margin-top:6px; }
+  .pv-popup .pv-btns { margin-top:10px; display:flex; gap:8px; }
+  .pv-popup .pv-btn { font-size:12px; padding:4px 12px; border-radius:8px; }
+  .pv-popup .pv-x { position:absolute; right:10px; top:10px; font-size:12px; padding:3px 9px; border-radius:8px; }
+  .hint { font-size:12px; color:var(--muted); line-height:1.7; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>🎨 miaomiao 配色选择器</h1>
+    <div class="card">
+      <div class="group-title">页面配色</div>
+      <div id="pageRows"></div>
+      <div class="group-title">划词弹窗配色</div>
+      <div id="popupRows"></div>
+      <div class="actions">
+        <button class="primary" id="save">保存（我这边直接读取）</button>
+        <button id="copy">复制 JSON</button>
+      </div>
+      <div class="msg" id="msg"></div>
+      <div class="hint">
+        选好后点「保存」→ 写到本地服务的 data/theme-draft.json，我就能读到。<br>
+        也可以点「复制 JSON」把内容粘贴给对话。
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="group-title">页面预览</div>
+      <div class="preview-page" id="pvPage">
+        <span class="pv-logo" id="pvLogo">喵</span>
+        <div class="pv-card" id="pvCard">
+          <div style="font-size:11px;letter-spacing:.08em">翻译结果</div>
+          <div class="pv-rough" id="pvRough">今天天气很好，我们去公园散步吧</div>
+          <span class="pv-chip" id="pvChip1">100% 离线</span>
+          <span class="pv-chip" id="pvChip2">EN 72,000 词</span>
+          <div class="pv-input" id="pvInput">输入要翻译的内容…</div>
+        </div>
+      </div>
+      <div class="group-title" style="margin-top:18px">划词弹窗预览</div>
+      <div class="pv-popup" id="pvPopup">
+        <span class="pv-x" id="pvX">✕</span>
+        <div class="pv-t" id="pvT">今天非常冷</div>
+        <div class="pv-b" id="pvB">It's very cold today.</div>
+        <div class="pv-btns">
+          <span class="pv-btn" id="pvCopy">复制译文</span>
+          <span class="pv-btn" id="pvSet">设置</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PAGE_FIELDS = [
+  ['bg', '页面背景', '#fff6f9'],
+  ['panel', '卡片背景', '#fffafc'],
+  ['panel2', '次级面板', '#fdeef3'],
+  ['border', '边框', '#f3d9e2'],
+  ['borderStrong', '深边框', '#e8bfcd'],
+  ['text', '正文文字', '#3b1f28'],
+  ['muted', '次要文字', '#8d6a76'],
+  ['accent', '强调色（草绿）', '#7cb342'],
+  ['accentDeep', '强调深色', '#67973a'],
+  ['mainBtn', '大按钮（开启划词）', '#ec6b93'],
+];
+const POPUP_FIELDS = [
+  ['popupBg', '弹窗背景', '#fffafc'],
+  ['popupOrig', '原文颜色', '#3b1f28'],
+  ['popupTrans', '译文颜色', '#3b1f28'],
+  ['popupCopy', '复制键颜色', '#7cb342'],
+  ['popupClose', '关闭键颜色', '#f7d6e0'],
+  ['popupBorder', '弹窗边框', '#f3d9e2'],
+];
+
+const values = {};
+function buildRows(containerId, fields) {
+  const box = document.getElementById(containerId);
+  fields.forEach(([key, label, def]) => {
+    values[key] = def;
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<label>' + label + '</label>' +
+      '<input type="color" data-k="' + key + '" value="' + def + '">' +
+      '<input type="text" data-k="' + key + '" value="' + def + '">';
+    box.appendChild(row);
+  });
+}
+buildRows('pageRows', PAGE_FIELDS);
+buildRows('popupRows', POPUP_FIELDS);
+
+function sync(key, val, from) {
+  values[key] = val;
+  document.querySelectorAll('[data-k="' + key + '"]').forEach(el => {
+    if (el !== from) el.value = val;
+  });
+  render();
+}
+document.addEventListener('input', (e) => {
+  const k = e.target.getAttribute('data-k');
+  if (!k) return;
+  const v = e.target.value;
+  if (e.target.type === 'text' && !/^#[0-9a-fA-F]{6}$/.test(v)) return;
+  sync(k, v.toUpperCase().startsWith('#') ? v : '#' + v, e.target);
+});
+
+function render() {
+  const v = values;
+  const page = document.getElementById('pvPage');
+  page.style.background = v.bg;
+  page.style.borderColor = v.border;
+  document.getElementById('pvLogo').style.background = v.accent;
+  const card = document.getElementById('pvCard');
+  card.style.background = v.panel;
+  card.style.borderColor = v.border;
+  card.style.color = v.text;
+  document.getElementById('pvRough').style.color = v.text;
+  [['pvChip1'], ['pvChip2']].forEach(([id]) => {
+    const el = document.getElementById(id);
+    el.style.background = v.accent + '29';   // 16% alpha
+    el.style.color = v.accentDeep;
+    el.style.border = '1px solid ' + v.accent;
+  });
+  const input = document.getElementById('pvInput');
+  input.style.background = v.panel2;
+  input.style.borderColor = v.border;
+  input.style.color = v.muted;
+  document.querySelector('.preview-page').style.boxShadow = '0 8px 24px rgba(120,100,60,.10)';
+
+  const pop = document.getElementById('pvPopup');
+  pop.style.background = v.popupBg;
+  pop.style.borderColor = v.popupBorder;
+  document.getElementById('pvT').style.color = v.popupOrig;
+  document.getElementById('pvB').style.color = v.popupTrans;
+  const copy = document.getElementById('pvCopy');
+  copy.style.background = v.popupCopy;
+  copy.style.color = contrast(v.popupCopy);
+  const set = document.getElementById('pvSet');
+  set.style.background = v.popupCopy;
+  set.style.color = contrast(v.popupCopy);
+  const x = document.getElementById('pvX');
+  x.style.background = v.popupClose;
+  x.style.color = contrast(v.popupClose);
+  // 暴露给外层(Mac 预览用颜色)
+  document.title = '配色预览 ' + v.accent;
+}
+
+function contrast(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const lum = 0.299*r + 0.587*g + 0.114*b;
+  return lum > 150 ? '#322b25' : '#ffffff';
+}
+
+function payload() {
+  return {
+    theme: 'guava',
+    page: {
+      bg: values.bg, panel: values.panel, panel2: values.panel2,
+      border: values.border, borderStrong: values.borderStrong,
+      text: values.text, muted: values.muted,
+      accent: values.accent, accentDeep: values.accentDeep, mainBtn: values.mainBtn,
+    },
+    popup: {
+      bgColor: values.popupBg, origColor: values.popupOrig, transColor: values.popupTrans,
+      copyColor: values.popupCopy, closeColor: values.popupClose, borderColor: values.popupBorder,
+    },
+  };
+}
+
+document.getElementById('save').addEventListener('click', async () => {
+  const msg = document.getElementById('msg');
+  msg.textContent = '保存中…';
+  try {
+    const r = await fetch('/api/theme-draft', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload()),
+    }).then(x => x.json());
+    msg.textContent = r.ok ? '✅ 已保存到 data/theme-draft.json，告诉我一声即可' : ('❌ ' + r.error);
+  } catch (e) {
+    msg.textContent = '❌ 保存失败（请通过 http://127.0.0.1:6688 打开本页面）';
+  }
+});
+
+document.getElementById('copy').addEventListener('click', async () => {
+  const txt = JSON.stringify(payload(), null, 2);
+  try {
+    await navigator.clipboard.writeText(txt);
+    document.getElementById('msg').textContent = '✅ 已复制 JSON，可直接粘贴给我';
+  } catch {
+    document.getElementById('msg').textContent = '复制失败，请手动选中下方内容';
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.width = '100%'; ta.style.height = '140px'; ta.style.marginTop = '8px';
+    document.body.appendChild(ta); ta.select();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
