@@ -67,6 +67,7 @@ enum Theme: String, CaseIterable {
     case greenApple = "green-apple" // 青苹果：青苹果绿 + 米黄
     case banana = "banana"          // 香蕉：香蕉黄 + 米白
     case soda = "soda"              // 汽水：汽水蓝 + 玻璃感
+    case guava = "guava"            // 芭乐：粉色 + 草绿
 
     var name: String {
         switch self {
@@ -74,6 +75,7 @@ enum Theme: String, CaseIterable {
         case .greenApple: return "青苹果"
         case .banana: return "香蕉"
         case .soda: return "汽水"
+        case .guava: return "芭乐"
         }
     }
     // 页面强调色（设置面板滑块等原生控件用）
@@ -81,33 +83,39 @@ enum Theme: String, CaseIterable {
         case .apple: return hexToColor("", fallback: 0xFF3B30)
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
-        case .soda: return hexToColor("", fallback: 0x74A7FE) } }
+        case .soda: return hexToColor("", fallback: 0x74A7FE)
+        case .guava: return hexToColor("", fallback: 0x7CB342) } }
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
         case .greenApple: return hexToColor("", fallback: 0x000000)
         case .banana: return hexToColor("", fallback: 0x000000)
-        case .soda: return hexToColor("", fallback: 0x000000) } }
+        case .soda: return hexToColor("", fallback: 0x000000)
+        case .guava: return hexToColor("", fallback: 0x000000) } }
     var popupOrig: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFF5648)
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
-        case .soda: return hexToColor("", fallback: 0x53D5FD) } }
+        case .soda: return hexToColor("", fallback: 0x53D5FD)
+        case .guava: return hexToColor("", fallback: 0xFF7BA0) } }
     var popupTrans: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6CF)
         case .greenApple: return hexToColor("", fallback: 0xFEFCDD)
         case .banana: return hexToColor("", fallback: 0xFDF6DE)
-        case .soda: return hexToColor("", fallback: 0xFFFFFF) } }
+        case .soda: return hexToColor("", fallback: 0xFFFFFF)
+        case .guava: return hexToColor("", fallback: 0xEFF7E4) } }
     var popupCopy: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6C6)
         case .greenApple: return hexToColor("", fallback: 0xB1DD8C)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
-        case .soda: return hexToColor("", fallback: 0x74A7FE) } }
+        case .soda: return hexToColor("", fallback: 0x74A7FE)
+        case .guava: return hexToColor("", fallback: 0x7CB342) } }
     var popupClose: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFFFFFF)
         case .greenApple: return hexToColor("", fallback: 0xFFFFFF)
         case .banana: return hexToColor("", fallback: 0xFFFFFF)
-        case .soda: return hexToColor("", fallback: 0xFFFFFF) } }
+        case .soda: return hexToColor("", fallback: 0xFFFFFF)
+        case .guava: return hexToColor("", fallback: 0xFFF0F4) } }
 }
 
 enum Settings {
@@ -584,7 +592,7 @@ final class SettingsPanel: NSPanel {
             sl.isEnabled = true
             sl.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         }
-        themeControl.selectedSegment = Settings.theme == .apple ? 0 : (Settings.theme == .greenApple ? 1 : (Settings.theme == .banana ? 2 : 3))
+        themeControl.selectedSegment = Theme.allCases.firstIndex(of: Settings.theme) ?? 0
         themeControl.target = self
         themeControl.action = #selector(changed)
         applyThemeTint(staged: false)
