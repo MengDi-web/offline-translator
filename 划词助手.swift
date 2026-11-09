@@ -91,25 +91,25 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x000000)
         case .banana: return hexToColor("", fallback: 0x000000)
         case .soda: return hexToColor("", fallback: 0x000000)
-        case .peach: return hexToColor("", fallback: 0xFFFFFF) } }
+        case .peach: return hexToColor("", fallback: 0x000000) } }
     var popupOrig: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFF5648)
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x53D5FD)
-        case .peach: return hexToColor("", fallback: 0xFFA399) } }
+        case .peach: return hexToColor("", fallback: 0xFFC8C2) } }
     var popupTrans: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6CF)
         case .greenApple: return hexToColor("", fallback: 0xFEFCDD)
         case .banana: return hexToColor("", fallback: 0xFDF6DE)
         case .soda: return hexToColor("", fallback: 0xFFFFFF)
-        case .peach: return hexToColor("", fallback: 0xFF584D) } }
+        case .peach: return hexToColor("", fallback: 0xFFFFFF) } }
     var popupCopy: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFBF6C6)
         case .greenApple: return hexToColor("", fallback: 0xB1DD8C)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .peach: return hexToColor("", fallback: 0xB8EE44) } }
+        case .peach: return hexToColor("", fallback: 0xFFD4CC) } }
     var popupClose: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0xFFFFFF)
         case .greenApple: return hexToColor("", fallback: 0xFFFFFF)

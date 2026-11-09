@@ -46,7 +46,7 @@ const THEME_PALETTES = {
   'green-apple': { bgColor: '#FBFDF2', origColor: '#20290F', transColor: '#20290F', copyColor: '#96D35F', closeColor: '#E2E9C2', borderColor: '#E2E9C2' },
   banana:        { bgColor: '#FFFDF4', origColor: '#3A2F0C', transColor: '#3A2F0C', copyColor: '#E8AD00', closeColor: '#F0E0A8', borderColor: '#F0E0A8' },
   soda:          { bgColor: '#F4FAFC', origColor: '#0E2F3A', transColor: '#0E2F3A', copyColor: '#74A7FE', closeColor: '#D3E2F5', borderColor: '#D3E2F5' },
-  peach:         { bgColor: '#ffffff', origColor: '#ffa399', transColor: '#ff584d', copyColor: '#b8ee44', closeColor: '#ffd4cc', borderColor: '#fbafa2' },
+  peach:         { bgColor: '#000000', origColor: '#ffc8c2', transColor: '#ffffff', copyColor: '#ffd4cc', closeColor: '#ffd4cc', borderColor: '#000000' },
 };
 
 function getUiTheme() {

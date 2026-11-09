@@ -6,18 +6,18 @@
     "panel2": "#ffe7e5",
     "border": "#ffcdc7",
     "borderStrong": "#ffd4cc",
-    "text": "#ff908a",
-    "muted": "#ff7e70",
+    "text": "#000000",
+    "muted": "#000000",
     "accent": "#b8ee43",
     "accentDeep": "#ff837a",
-    "mainBtn": "#ffcccc"
+    "mainBtn": "#ffadad"
   },
   "popup": {
-    "bgColor": "#ffffff",
-    "origColor": "#ffa399",
-    "transColor": "#ff584d",
-    "copyColor": "#b8ee44",
+    "bgColor": "#000000",
+    "origColor": "#ffc8c2",
+    "transColor": "#ffffff",
+    "copyColor": "#ffd4cc",
     "closeColor": "#ffd4cc",
-    "borderColor": "#fbafa2"
+    "borderColor": "#000000"
   }
 }
