@@ -118,7 +118,7 @@ if not exist "neural\models\opus-mt-zh-en-ft\pytorch_model.bin" (
     node tools\fetch-models.js
     if errorlevel 1 (
         echo [错误] 模型下载失败（网络问题或 Release 不可用），请重试
-        echo        也可以稍后重新双击「一键部署.cmd」，会跳过已完成步骤
+        echo        也可以稍后重新双击「install.cmd」，会跳过已完成步骤
         pause
         exit /b 1
     )
@@ -137,7 +137,7 @@ if not exist "data\common.json" (
 
 echo.
 echo ==============================================
-echo   部署完成！以后每次使用：双击 启动翻译器.bat
+echo   部署完成！以后每次使用：双击 start.bat
 echo   然后浏览器地址栏输入 http://127.0.0.1:6688 即可翻译
 echo ==============================================
 pause

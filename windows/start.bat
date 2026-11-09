@@ -20,7 +20,7 @@ if not exist "%ROOT%\server.js" (
 
 where node >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未找到 Node.js，请先双击「一键部署.cmd」完成安装
+    echo [错误] 未找到 Node.js，请先双击「install.cmd」完成安装
     pause
     exit /b 1
 )
@@ -31,13 +31,13 @@ timeout /t 5 /nobreak >nul
 if not exist "%WIN%helper.log" (
     echo [提示] 划词助手似乎未启动成功（没生成 windows\helper.log）
     echo        若划词没反应，请把 windows\helper.log 的内容发给开发者
-    echo        或双击 windows\诊断划词.bat 查看具体错误
+    echo        或双击 windows\diagnose.bat 查看具体错误
     echo        划词不影响主功能：网页翻译照常可用
 )
 
 if not exist "%ROOT%\neural\.venv\Scripts\python.exe" (
-    echo [提示] 还没运行过「一键部署.cmd」→ 神经翻译不可用，只能查词典
-    echo        建议：先关闭本窗口，运行 windows\一键部署.cmd（只需一次），
+    echo [提示] 还没运行过「install.cmd」→ 神经翻译不可用，只能查词典
+    echo        建议：先关闭本窗口，运行 windows\install.cmd（只需一次），
     echo        装好后再运行本脚本，即可获得完整翻译效果。
     echo.
 )
