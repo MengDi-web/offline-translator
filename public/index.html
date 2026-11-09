@@ -281,6 +281,13 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
 </style>
 </head>
 <body>
+  <div id="fileWarn" hidden style="position:fixed;inset:0;z-index:999;background:rgba(20,16,10,.92);color:#fbf6ec;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-size:15px;line-height:1.9">
+    <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+    <div style="font-weight:700;font-size:18px;margin-bottom:10px">不能直接双击打开这个网页文件</div>
+    <div>请先启动翻译服务，然后用浏览器访问：</div>
+    <div style="margin:12px 0;padding:10px 18px;background:#fbf6ec;color:#1d1d1f;border-radius:10px;font-family:ui-monospace,monospace;font-size:17px;font-weight:700">http://127.0.0.1:6688</div>
+    <div style="color:#c9c0ae">Windows：双击 windows\start.bat　　Mac：双击 miaomiao翻译器.app</div>
+  </div>
 <div class="container">
   <header>
     <div class="brand">
@@ -365,7 +372,34 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
   <br><span class="disclaimer">仅为神经网络训练的本地离线翻译器，并非专业翻译，仅供参考。</span>
 </footer>
 
-<script>
+  <!-- 划词弹窗设置（网页版设置页，风格与页面一致） -->
+  <div class="settings-mask" id="settingsMask" hidden>
+    <div class="settings-card">
+      <div class="settings-head">
+        <b>划词弹窗设置</b>
+        <button class="settings-close" id="settingsClose" title="关闭">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="2"><span class="set-val" id="setWidthVal"></span></div>
+        <div class="set-row"><label>划词字号</label><input type="range" id="setOrigFont" min="10" max="24"><span class="set-val" id="setOrigFontVal"></span></div>
+        <div class="set-row"><label>翻译字号</label><input type="range" id="setTransFont" min="10" max="24"><span class="set-val" id="setTransFontVal"></span></div>
+        <div class="set-row"><label>背景不透明度</label><input type="range" id="setOpacity" min="30" max="100"><span class="set-val" id="setOpacityVal"></span></div>
+        <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28"><span class="set-val" id="setRadiusVal"></span></div>
+        <div class="settings-divider"></div>
+        <div class="set-row"><label>背景颜色</label><input type="color" id="setBgColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>复制键颜色</label><input type="color" id="setCopyColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>关闭键颜色</label><input type="color" id="setCloseColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>原文字色</label><input type="color" id="setOrigColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>译文文字色</label><input type="color" id="setTransColor"><span class="set-val"></span></div>
+      </div>
+      <div class="settings-foot">
+        <button class="btn ghost" id="settingsReset">恢复默认</button>
+        <button class="btn primary" id="settingsSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
 const $ = (s) => document.querySelector(s);
 const input = $('#input'), goBtn = $('#go'), resultBox = $('#result'), suggestBox = $('#suggest');
 
@@ -446,10 +480,10 @@ async function openSettingsPanel() {
   } catch { fillSettings(XC_DEFAULTS); }
   $('#settingsMask').hidden = false;
 }
-$('#settingsClose').addEventListener('click', () => { $('#settingsMask').hidden = true; });
-$('#settingsMask').addEventListener('click', (e) => { if (e.target === $('#settingsMask')) $('#settingsMask').hidden = true; });
-$('#settingsReset').addEventListener('click', () => fillSettings(XC_DEFAULTS));
-$('#settingsSave').addEventListener('click', async () => {
+$('#settingsClose')?.addEventListener('click', () => { $('#settingsMask').hidden = true; });
+$('#settingsMask')?.addEventListener('click', (e) => { if (e.target === $('#settingsMask')) $('#settingsMask').hidden = true; });
+$('#settingsReset')?.addEventListener('click', () => fillSettings(XC_DEFAULTS));
+$('#settingsSave')?.addEventListener('click', async () => {
   const btn = $('#settingsSave');
   try {
     const r = await fetch('/api/xuanci-config', {
@@ -470,6 +504,27 @@ $('#settingsBtn').addEventListener('click', () => {
     openSettingsPanel();
   }
 });
+// 全局错误可见化: 页面出现 JS 错误时显示红色提示条(便于排查)
+window.addEventListener('error', (e) => {
+  try {
+    let bar = document.getElementById('jsErrBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'jsErrBar';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:1000;background:#c0392b;color:#fff;' +
+        'padding:8px 14px;font-size:12.5px;font-family:ui-monospace,monospace;white-space:pre-wrap;';
+      document.body.appendChild(bar);
+    }
+    bar.textContent = '页面脚本错误: ' + (e.message || e.error) + '  @' + (e.filename || '') + ':' + (e.lineno || '');
+  } catch {}
+});
+
+// 直接双击 index.html (file://) 无法工作 —— 明确提示
+if (location.protocol === 'file:') {
+  const w = document.getElementById('fileWarn');
+  if (w) { w.hidden = false; w.style.display = 'flex'; }
+}
+
 let curDir = 'auto';
 let curMode = 'auto';
 let lastResult = null;
@@ -548,6 +603,7 @@ function translationText(r) {
 }
 
 async function doTranslate() {
+  if (location.protocol === 'file:') { alert('请通过 http://127.0.0.1:6688 打开（先启动翻译服务）'); return; }
   const q = input.value.trim();
   if (!q) return;
   goBtn.disabled = true; goBtn.textContent = '翻译中…';
@@ -802,31 +858,6 @@ fetch('/api/stats').then(r => r.json()).then(s => {
 
 renderHistory();
 </script>
-  <!-- 划词弹窗设置（网页版设置页，风格与页面一致） -->
-  <div class="settings-mask" id="settingsMask" hidden>
-    <div class="settings-card">
-      <div class="settings-head">
-        <b>划词弹窗设置</b>
-        <button class="settings-close" id="settingsClose" title="关闭">✕</button>
-      </div>
-      <div class="settings-body">
-        <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="2"><span class="set-val" id="setWidthVal"></span></div>
-        <div class="set-row"><label>划词字号</label><input type="range" id="setOrigFont" min="10" max="24"><span class="set-val" id="setOrigFontVal"></span></div>
-        <div class="set-row"><label>翻译字号</label><input type="range" id="setTransFont" min="10" max="24"><span class="set-val" id="setTransFontVal"></span></div>
-        <div class="set-row"><label>背景不透明度</label><input type="range" id="setOpacity" min="30" max="100"><span class="set-val" id="setOpacityVal"></span></div>
-        <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28"><span class="set-val" id="setRadiusVal"></span></div>
-        <div class="settings-divider"></div>
-        <div class="set-row"><label>背景颜色</label><input type="color" id="setBgColor"><span class="set-val"></span></div>
-        <div class="set-row"><label>复制键颜色</label><input type="color" id="setCopyColor"><span class="set-val"></span></div>
-        <div class="set-row"><label>关闭键颜色</label><input type="color" id="setCloseColor"><span class="set-val"></span></div>
-        <div class="set-row"><label>原文字色</label><input type="color" id="setOrigColor"><span class="set-val"></span></div>
-        <div class="set-row"><label>译文文字色</label><input type="color" id="setTransColor"><span class="set-val"></span></div>
-      </div>
-      <div class="settings-foot">
-        <button class="btn ghost" id="settingsReset">恢复默认</button>
-        <button class="btn primary" id="settingsSave">保存</button>
-      </div>
-    </div>
-  </div>
+
 </body>
 </html>
