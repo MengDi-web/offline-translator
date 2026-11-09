@@ -40,10 +40,13 @@ if not exist "%ROOT%\neural\.venv\Scripts\python.exe" (
     echo.
 )
 echo 正在启动翻译服务...
-echo 启动后请打开浏览器，地址栏输入:  http://127.0.0.1:6688
+echo 服务启动后会自动弹出独立窗口（无需手动输入网址）。
+echo 如果窗口没弹出：打开浏览器，地址栏输入  http://127.0.0.1:6688
 echo 保持本窗口打开，不要关闭（关闭即停止服务）。
 echo 划词翻译：在网页上点一次「开启一键划词」，之后选中文字按 Ctrl+C 即弹窗翻译。
 echo.
+rem 后台等待服务就绪 → 弹出 Edge/Chrome 应用模式窗口（无地址栏，像软件）
+start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%WIN%open_window.ps1"
 node "%ROOT%\server.js"
 
 echo.
