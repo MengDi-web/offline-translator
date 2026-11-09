@@ -88,7 +88,9 @@ function Load-Config {
 function Save-Config($cfg) {
     $j = [ordered]@{}
     foreach ($k in $DEFAULTS.Keys) { $j[$k] = $cfg[$k] }
-    $j | ConvertTo-Json | Set-Content -Path $CONFIG_PATH -Encoding UTF8
+    $json = $j | ConvertTo-Json
+    # 必须无 BOM: 否则 server.js 的 JSON.parse 会失败(网页设置页读不到)
+    [System.IO.File]::WriteAllText($CONFIG_PATH, $json, (New-Object System.Text.UTF8Encoding($false)))
 }
 
 $cfg = Load-Config
@@ -132,7 +134,7 @@ function Normalize-Wrapped($text) {
         }
         $out += $sb
     }
-    return ($out -join "`r`n`r`n")
+    return ($out -join "`n`n")
 }
 
 # ---------- 乱码检测 ----------
@@ -231,7 +233,11 @@ function Show-Popup($resp) {
             $title.Text += "`n(已补齐: $($resp.original) → $completed)"
             $title.Height = 70
         }
-        if ($resp.kind -eq 'sentence') {
+        if ($resp.nmtError -and -not $resp.translation) {
+            $bodyLbl.Text = '（神经翻译暂不可用：' + [string]$resp.nmtError + '）'
+            $script:copyPayload = ''
+        }
+        elseif ($resp.kind -eq 'sentence') {
             $bodyLbl.Text = [string]$resp.translation
             $script:copyPayload = [string]$resp.translation
         } else {
@@ -249,6 +255,10 @@ function Show-Popup($resp) {
         param($sender, $e)
         if ($script:copyPayload) {
             [System.Windows.Forms.Clipboard]::SetText($script:copyPayload)
+            # 关键: 同步序列号, 避免"复制译文"被当成新的划词再翻一次
+            try { $script:lastClipSeq = [MiaoNative.Clip]::GetClipboardSequenceNumber() } catch {}
+            $script:lastText = $script:copyPayload
+            $script:lastCopyTime = [DateTime]::Now
             $sender.Text = '已复制 ✓'
             Start-Sleep -Milliseconds 1200
             $sender.Text = '复制译文'
@@ -355,7 +365,7 @@ $timer.add_Tick({
         $t = Normalize-Wrapped ([System.Windows.Forms.Clipboard]::GetText())
         if ([string]::IsNullOrWhiteSpace($t)) { return }
         $now = [DateTime]::Now
-        Log ("剪贴板文本({0}字符): {1}" -f $t.Length, $t.Substring(0, [Math]::Min(30, $t.Length)))
+        Log ("剪贴板文本({0}字符)" -f $t.Length)
         if (Test-Garbled $t) {
             Log "判定为乱码, 提示不翻译"
             Show-Popup @{ error = '⚠ 复制内容疑似乱码（可能来自应用的复制保护），无法翻译' }

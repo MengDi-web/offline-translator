@@ -37,21 +37,21 @@ if [ -d "$OFFLINE" ] && [ -n "$(ls "$OFFLINE"/* 2>/dev/null)" ]; then
   mkdir -p /tmp/win-full/offline && cp "$OFFLINE"/* /tmp/win-full/offline/
 fi
 
-rm -f "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
-python3 "$ROOT/tools/zip-utf8.py" /tmp/win-full "$ROOT/dist/miaomiao翻译器-win-完整版.zip"
+rm -f "$ROOT/dist/miaomiao-win.zip"
+python3 "$ROOT/tools/zip-utf8.py" /tmp/win-full "$ROOT/dist/miaomiao-win.zip"
 
 echo "== 2/3 macOS 子包（ditto）=="
 codesign --force --sign - --deep "$ROOT/dist/miaomiao翻译器.app"
-rm -f "$ROOT/dist/miaomiao翻译器-mac.zip"
+rm -f "$ROOT/dist/miaomiao-mac.zip"
 ditto -c -k --sequesterRsrc --keepParent \
-  "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao翻译器-mac.zip"
+  "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao-mac.zip"
 
 echo "== 3/3 组装网盘分发目录 =="
 OUT="$ROOT/dist/网盘分发"
 rm -rf "$OUT"
 mkdir -p "$OUT/macOS" "$OUT/Windows"
-cp "$ROOT/dist/miaomiao翻译器-mac.zip" "$OUT/macOS/"
-cp "$ROOT/dist/miaomiao翻译器-win-完整版.zip" "$OUT/Windows/"
+cp "$ROOT/dist/miaomiao-mac.zip" "$OUT/macOS/"
+cp "$ROOT/dist/miaomiao-win.zip" "$OUT/Windows/"
 
 cat > "$OUT/macOS/安装说明.txt" <<'EOF'
 macOS（苹果电脑）安装说明
@@ -60,7 +60,7 @@ macOS（苹果电脑）安装说明
 （Intel 芯片的旧 Mac 不支持）
 
 【安装 3 步】
-1. 双击解压 miaomiao翻译器-mac.zip
+1. 双击解压 miaomiao-mac.zip
    （用系统自带「归档实用工具」解压，不要用第三方解压软件）
    → 得到 miaomiao翻译器.app
 2. 把 miaomiao翻译器.app 拖到「应用程序」文件夹
@@ -112,8 +112,8 @@ miaomiao翻译器 · 网盘分发版
 =============================
 按对方的电脑系统发对应的文件夹：
 
-  macOS\miaomiao翻译器-mac.zip        苹果电脑用（Apple 芯片 M1-M4）
-  Windows\miaomiao翻译器-win-完整版.zip  Windows 电脑用（模型已内置）
+  macOS\miaomiao-mac.zip        苹果电脑用（Apple 芯片 M1-M4）
+  Windows\miaomiao-win.zip  Windows 电脑用（模型已内置）
 
 都是完全离线的中英互译工具：
 · 词典 + 本地神经翻译双引擎

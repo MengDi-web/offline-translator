@@ -34,7 +34,32 @@ def _ascii_safe_dir(model_dir):
         return model_dir
     import tempfile, shutil, hashlib
     tag = hashlib.md5(str(model_dir).encode('utf-8')).hexdigest()[:10]
-    dst = os.path.join(tempfile.gettempdir(), 'miaomiao-model-' + tag)
+    # 注意: %TEMP% 在 Windows 上常是 C:\Users\<用户名>\AppData\Local\Temp,
+    # 用户名含中文时仍然不是纯 ASCII → 依次尝试其它纯英文可写目录
+    cands = []
+    t = tempfile.gettempdir()
+    if t: cands.append(os.path.join(t, 'miaomiao-model-' + tag))
+    pd = os.environ.get('ProgramData')
+    if pd: cands.append(os.path.join(pd, 'miaomiao-model-' + tag))
+    for drive in ('C:\\', 'D:\\', 'E:\\'):
+        cands.append(os.path.join(drive, 'miaomiao-model-' + tag))
+    dst = None
+    for c in cands:
+        if not all(ord(ch) < 128 for ch in c):
+            continue
+        try:
+            os.makedirs(c, exist_ok=True)
+            probe = os.path.join(c, '.write-test')
+            with open(probe, 'w') as fh:
+                fh.write('x')
+            os.remove(probe)
+            dst = c
+            break
+        except Exception:
+            continue
+    if not dst:
+        print('[路径含中文] 找不到纯英文可写目录, 尝试直接加载', flush=True)
+        return model_dir
     need = ['config.json', 'pytorch_model.bin', 'source.spm', 'target.spm', 'vocab.json', 'generation_config.json']
     if not all(os.path.exists(os.path.join(dst, f)) for f in need if os.path.exists(os.path.join(model_dir, f))):
         os.makedirs(dst, exist_ok=True)

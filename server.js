@@ -61,7 +61,7 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 function readXuanciConfig() {
   try {
     if (fs.existsSync(XUANCI_FILE)) {
-      const saved = JSON.parse(fs.readFileSync(XUANCI_FILE, 'utf8'));
+      const saved = JSON.parse(fs.readFileSync(XUANCI_FILE, 'utf8').replace(/^\uFEFF/, ''));
       if (saved && saved.version === 3) {
         const out = Object.assign({}, XUANCI_DEFAULTS);
         for (const k of Object.keys(XUANCI_DEFAULTS)) {
@@ -175,6 +175,16 @@ function startNmt() {
       }
     }
   });
+  // 子进程 error(无法执行/被杀毒拦截/路径过长): 不处理会导致 Node 未捕获异常退出
+  nmt.on('error', (err) => {
+    console.log(`[nmt] 子进程启动失败: ${err.message}，神经翻译将不可用（词典照常）`);
+    nmtReady = false;
+    nmtQueue.forEach((j) => j.resolve({ error: 'nmt backend error' }));
+    nmtQueue = [];
+    nmt = null;
+  });
+  // Python 突然退出时写 stdin 会异步 EPIPE → 不监听会崩
+  if (nmt.stdin) nmt.stdin.on('error', () => { /* exit/error 回调里已统一降级 */ });
   nmt.on('exit', (code) => {
     console.log(`[nmt] 子进程退出 code=${code}，神经翻译将不可用`);
     nmtReady = false;
