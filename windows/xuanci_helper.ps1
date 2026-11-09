@@ -229,14 +229,15 @@ function Show-Popup($resp) {
     }
 
     $copyBtn.Add_Click({
+        param($sender, $e)
         if ($script:copyPayload) {
             [System.Windows.Forms.Clipboard]::SetText($script:copyPayload)
-            $copyBtn.Text = '已复制 ✓'
+            $sender.Text = '已复制 ✓'
             Start-Sleep -Milliseconds 1200
-            $copyBtn.Text = '复制译文'
+            $sender.Text = '复制译文'
         }
     })
-    $closeBtn.Add_Click({ $f.Close() })
+    $closeBtn.Add_Click({ param($sender, $e) $sender.FindForm().Close() })
 
     # 拖拽移动：按住窗体/标题/正文拖动（按钮除外，保持可点击）
     $dragTargets = @($f, $title, $bodyLbl)
@@ -303,7 +304,7 @@ function Show-Popup($resp) {
     if ($y + $f.Height -gt $screen.WorkingArea.Bottom) { $y = $pos.Y - $f.Height - 10 }
     $f.Location = New-Object System.Drawing.Point($x, $y)
 
-    $popupForm = $f
+    $script:popupForm = $f
     $f.Show()
     $f.BringToFront()
 }
@@ -364,63 +365,107 @@ function Show-Settings {
     $sf.Text = 'miaomiao翻译器 · 设置'
     $sf.FormBorderStyle = 'FixedDialog'
     $sf.StartPosition = 'CenterScreen'
-    $sf.ClientSize = New-Object System.Drawing.Size(360, 340)
+    $sf.ClientSize = New-Object System.Drawing.Size(380, 396)
+    $sf.BackColor = HexToColor $cfg.bgColor
+    $sf.ForeColor = [System.Drawing.Color]::White
+
+    # 控件统一放脚本作用域: PowerShell 事件处理器访问不到函数内的局部变量
+    $script:stForm = $sf
+    $script:stTrack = @{}
+    $script:stValLbl = @{}
 
     function Add-Slider($parent, $y, $labelText, $min, $max, $value, $tag) {
         $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = $labelText; $lbl.SetBounds(14, $y, 90, 22)
+        $lbl.Text = $labelText; $lbl.SetBounds(16, $y, 96, 22)
+        $lbl.ForeColor = [System.Drawing.Color]::White
         $trk = New-Object System.Windows.Forms.TrackBar
-        $trk.SetBounds(110, $y, 170, 30)
+        $trk.SetBounds(116, $y, 170, 30)
         $trk.Maximum = [int]$max; $trk.Minimum = [int]$min
         $trk.Value = [Math]::Min([Math]::Max([int]$value, [int]$min), [int]$max)
+        $trk.Tag = [string]$tag
+        $trk.BackColor = HexToColor $cfg.bgColor
         $val = New-Object System.Windows.Forms.Label
-        $val.Text = "$value"; $val.SetBounds(290, $y, 50, 22)
-        $trk.Add_ValueChanged({ $val.Text = "$($trk.Value)" })
+        $val.Text = "$($trk.Value)"; $val.SetBounds(294, $y, 52, 22)
+        $val.ForeColor = [System.Drawing.Color]::White
+        $script:stTrack[[string]$tag] = $trk
+        $script:stValLbl[[string]$tag] = $val
+        $trk.Add_ValueChanged({
+            param($sender, $e)
+            $k = [string]$sender.Tag
+            if ($script:stValLbl.ContainsKey($k)) { $script:stValLbl[$k].Text = "$($sender.Value)" }
+        })
         $parent.Controls.Add($lbl); $parent.Controls.Add($trk); $parent.Controls.Add($val)
         return $trk
     }
 
-    $trkWidth = Add-Slider $sf 10 '弹窗宽度' 260 560 $cfg.width 'width'
-    $trkOrig = Add-Slider $sf 48 '划词字号' 10 24 $cfg.origFontSize 'origFontSize'
-    $trkTrans = Add-Slider $sf 86 '翻译字号' 10 24 $cfg.transFontSize 'transFontSize'
-    $trkOpacity = Add-Slider $sf 124 '背景不透明度' 30 100 ([int]($cfg.opacity*100)) 'opacity'
-    $trkRadius = Add-Slider $sf 162 '圆角弧度' 0 28 $cfg.radius 'radius'
+    Add-Slider $sf 12 '弹窗宽度' 260 560 $cfg.width 'width' | Out-Null
+    Add-Slider $sf 52 '划词字号' 10 24 $cfg.origFontSize 'origFontSize' | Out-Null
+    Add-Slider $sf 92 '翻译字号' 10 24 $cfg.transFontSize 'transFontSize' | Out-Null
+    Add-Slider $sf 132 '背景不透明度' 30 100 ([int]($cfg.opacity * 100)) 'opacity' | Out-Null
+    Add-Slider $sf 172 '圆角弧度' 0 28 $cfg.radius 'radius' | Out-Null
 
     function Add-ColorBtn($parent, $y, $labelText, $colorKey) {
         $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = $labelText; $lbl.SetBounds(14, $y, 90, 24)
+        $lbl.Text = $labelText; $lbl.SetBounds(16, $y, 96, 24)
+        $lbl.ForeColor = [System.Drawing.Color]::White
         $btn = New-Object System.Windows.Forms.Button
-        $btn.Text = '选择颜色'; $btn.SetBounds(110, $y, 100, 26)
+        $btn.Tag = [string]$colorKey
+        $btn.Text = '选择颜色'; $btn.SetBounds(116, $y, 100, 26)
+        $btn.FlatStyle = 'Flat'
         $btn.BackColor = HexToColor $cfg[$colorKey]
+        $btn.ForeColor = Get-ContrastText $btn.BackColor
         $btn.Add_Click({
+            param($sender, $e)
+            $k = [string]$sender.Tag
             $dlg = New-Object System.Windows.Forms.ColorDialog
-            $dlg.Color = HexToColor $cfg[$colorKey]
-            if ($dlg.ShowDialog() -eq 'OK') {
-                $btn.BackColor = $dlg.Color
-                $cfg[$colorKey] = ToHexColor $dlg.Color
+            $dlg.Color = $sender.BackColor
+            $dlg.FullOpen = $true
+            if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                $sender.BackColor = $dlg.Color
+                $sender.ForeColor = Get-ContrastText $dlg.Color
+                $cfg[$k] = ToHexColor $dlg.Color
                 Save-Config $cfg
             }
         })
         $parent.Controls.Add($lbl); $parent.Controls.Add($btn)
     }
-    Add-ColorBtn $sf 200 '背景颜色' 'bgColor'
-    Add-ColorBtn $sf 234 '复制键颜色' 'copyColor'
-    Add-ColorBtn $sf 268 '关闭键颜色' 'closeColor'
+
+    Add-ColorBtn $sf 216 '背景颜色' 'bgColor'
+    Add-ColorBtn $sf 252 '复制键颜色' 'copyColor'
+    Add-ColorBtn $sf 288 '关闭键颜色' 'closeColor'
+    Add-ColorBtn $sf 324 '原文字色' 'origColor'
+    Add-ColorBtn $sf 360 '译文文字色' 'transColor'
 
     $okBtn = New-Object System.Windows.Forms.Button
-    $okBtn.Text = '保存'; $okBtn.SetBounds(280, 306, 64, 26)
+    $okBtn.Text = '保存'
+    $okBtn.SetBounds(296, 360, 68, 28)
+    $okBtn.FlatStyle = 'Flat'
+    $okBtn.BackColor = HexToColor $cfg.copyColor
+    $okBtn.ForeColor = Get-ContrastText $okBtn.BackColor
     $okBtn.Add_Click({
-        $cfg.width = $trkWidth.Value
-        $cfg.origFontSize = $trkOrig.Value
-        $cfg.transFontSize = $trkTrans.Value
-        $cfg.opacity = ($trkOpacity.Value / 100.0)
-        $cfg.radius = $trkRadius.Value
+        param($sender, $e)
+        $cfg.width = $script:stTrack['width'].Value
+        $cfg.origFontSize = $script:stTrack['origFontSize'].Value
+        $cfg.transFontSize = $script:stTrack['transFontSize'].Value
+        $cfg.opacity = ($script:stTrack['opacity'].Value / 100.0)
+        $cfg.radius = $script:stTrack['radius'].Value
         Save-Config $cfg
-        $sf.Close()
+        $script:stForm.Close()
     })
     $sf.Controls.Add($okBtn)
-    $sf.Show()
+
+    $cancelBtn = New-Object System.Windows.Forms.Button
+    $cancelBtn.Text = '取消'
+    $cancelBtn.SetBounds(224, 360, 64, 28)
+    $cancelBtn.FlatStyle = 'Flat'
+    $cancelBtn.BackColor = HexToColor $cfg.closeColor
+    $cancelBtn.ForeColor = Get-ContrastText $cancelBtn.BackColor
+    $cancelBtn.Add_Click({ param($sender, $e) $script:stForm.Close() })
+    $sf.Controls.Add($cancelBtn)
+
+    $sf.ShowDialog() | Out-Null
 }
+
 
 # ---------- 托盘图标 ----------
 $notify = New-Object System.Windows.Forms.NotifyIcon
