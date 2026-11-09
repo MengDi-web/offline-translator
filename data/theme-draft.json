@@ -1,14 +1,14 @@
 {
   "theme": "peach",
   "page": {
-    "bg": "#fffafa",
-    "panel": "#fff1f0",
-    "panel2": "#ffe7e5",
-    "border": "#ffcdc7",
+    "bg": "#fff5f5",
+    "panel": "#fdfcfc",
+    "panel2": "#fff1f0",
+    "border": "#ff9f94",
     "borderStrong": "#ffd4cc",
     "text": "#000000",
     "muted": "#000000",
-    "accent": "#b8ee43",
+    "accent": "#b2f425",
     "accentDeep": "#ff837a",
     "mainBtn": "#ffadad"
   },

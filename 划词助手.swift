@@ -84,7 +84,7 @@ enum Theme: String, CaseIterable {
         case .greenApple: return hexToColor("", fallback: 0x96D35F)
         case .banana: return hexToColor("", fallback: 0xFECB3E)
         case .soda: return hexToColor("", fallback: 0x74A7FE)
-        case .peach: return hexToColor("", fallback: 0xB8EE43) } }
+        case .peach: return hexToColor("", fallback: 0xB2F425) } }
     // 弹窗配色（页面配色由网页 CSS 按 data-theme 响应）
     var popupBg: NSColor { switch self {
         case .apple: return hexToColor("", fallback: 0x000000)
