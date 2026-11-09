@@ -94,6 +94,37 @@ html[data-theme="soda"] {          /* 汽水（用户配色） */
     border: 1px solid var(--accent); padding: 5px 13px; border-radius: 999px;
     transition: all .15s;
   }
+  .settings-mask {
+    position: fixed; inset: 0; background: rgba(20, 16, 10, .35);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .settings-mask[hidden] { display: none; }
+  .settings-card {
+    width: 430px; max-width: 92vw; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 18px 20px 16px;
+  }
+  .settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .settings-head b { font-size: 15px; color: var(--text); }
+  .settings-close {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+    width: 26px; height: 26px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .settings-close:hover { color: var(--accent); border-color: var(--accent); }
+  .set-row {
+    display: grid; grid-template-columns: 96px 1fr 40px; align-items: center;
+    gap: 10px; margin: 9px 0; font-size: 13px; color: var(--text);
+  }
+  .set-row label { color: var(--muted); }
+  .set-row input[type=range] { accent-color: var(--accent); width: 100%; }
+  .set-row input[type=color] {
+    width: 42px; height: 26px; padding: 0; border: 1px solid var(--border);
+    border-radius: 7px; background: none; cursor: pointer;
+  }
+  .set-val { font-size: 12px; color: var(--accent-deep); text-align: right; font-variant-numeric: tabular-nums; }
+  .settings-divider { height: 1px; background: var(--border); margin: 12px 0 6px; }
+  .settings-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
   .settings-btn:hover { filter: brightness(1.06); transform: translateY(-50%) scale(1.08); }   /* 悬停放大, 保持垂直居中不位移 */
   .badge {
     font-size: 11px; padding: 4px 12px; border-radius: 999px;
@@ -371,14 +402,72 @@ if (!IN_MAC_APP) {
   if (sel) sel.classList.add('hidden');
 }
 
-// 页面右上角设置键：Mac 内桥接原生设置面板；Windows/浏览器给正确提示
+// ---------- 划词弹窗设置（网页版，风格与页面一致） ----------
+const XC_DEFAULTS = { width:350, origFontSize:14, transFontSize:15, opacity:0.98, radius:16,
+  bgColor:'#FFFDF7', copyColor:'#FF3B30', closeColor:'#F0EAE0', origColor:'#1D1D1F', transColor:'#C0392B' };
+
+function setSliderPair(rangeId, valId, value, suffix) {
+  const r = $('#' + rangeId), v = $('#' + valId);
+  if (!r) return;
+  r.value = value;
+  if (v) v.textContent = value + (suffix || '');
+  r.oninput = () => { if (v) v.textContent = r.value + (suffix || ''); };
+}
+function fillSettings(cfg) {
+  setSliderPair('setWidth', 'setWidthVal', cfg.width, ' px');
+  setSliderPair('setOrigFont', 'setOrigFontVal', cfg.origFontSize, ' pt');
+  setSliderPair('setTransFont', 'setTransFontVal', cfg.transFontSize, ' pt');
+  setSliderPair('setOpacity', 'setOpacityVal', Math.round(cfg.opacity * 100), '%');
+  setSliderPair('setRadius', 'setRadiusVal', cfg.radius, ' px');
+  $('#setBgColor').value = cfg.bgColor;
+  $('#setCopyColor').value = cfg.copyColor;
+  $('#setCloseColor').value = cfg.closeColor;
+  $('#setOrigColor').value = cfg.origColor;
+  $('#setTransColor').value = cfg.transColor;
+}
+function readSettings() {
+  return {
+    width: parseInt($('#setWidth').value, 10),
+    origFontSize: parseInt($('#setOrigFont').value, 10),
+    transFontSize: parseInt($('#setTransFont').value, 10),
+    opacity: parseInt($('#setOpacity').value, 10) / 100,
+    radius: parseInt($('#setRadius').value, 10),
+    bgColor: $('#setBgColor').value.toUpperCase(),
+    copyColor: $('#setCopyColor').value.toUpperCase(),
+    closeColor: $('#setCloseColor').value.toUpperCase(),
+    origColor: $('#setOrigColor').value.toUpperCase(),
+    transColor: $('#setTransColor').value.toUpperCase(),
+  };
+}
+async function openSettingsPanel() {
+  try {
+    const r = await fetch('/api/xuanci-config').then(x => x.json());
+    fillSettings(r.config || XC_DEFAULTS);
+  } catch { fillSettings(XC_DEFAULTS); }
+  $('#settingsMask').hidden = false;
+}
+$('#settingsClose').addEventListener('click', () => { $('#settingsMask').hidden = true; });
+$('#settingsMask').addEventListener('click', (e) => { if (e.target === $('#settingsMask')) $('#settingsMask').hidden = true; });
+$('#settingsReset').addEventListener('click', () => fillSettings(XC_DEFAULTS));
+$('#settingsSave').addEventListener('click', async () => {
+  const btn = $('#settingsSave');
+  try {
+    const r = await fetch('/api/xuanci-config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(readSettings()),
+    }).then(x => x.json());
+    if (r.error) { alert(r.error); return; }
+    btn.textContent = '已保存 ✓';
+    setTimeout(() => { btn.textContent = '保存'; $('#settingsMask').hidden = true; }, 700);
+  } catch (e) { alert('保存失败: ' + e.message); }
+});
+
+// 页面右上角设置键：Mac 内桥接原生设置面板；Windows/浏览器打开网页版设置
 $('#settingsBtn').addEventListener('click', () => {
   if (IN_MAC_APP) {
     window.webkit.messageHandlers.miaomiaoOpenSettings.postMessage(null);
   } else {
-    alert('Windows / 浏览器版设置方式：\n\n' +
-          '· 主题：用右上角「主题下拉框」直接切换\n' +
-          '· 划词弹窗（宽度/字号/颜色）：右键右下角托盘图标「划词助手」→ 设置');
+    openSettingsPanel();
   }
 });
 let curDir = 'auto';
@@ -713,5 +802,31 @@ fetch('/api/stats').then(r => r.json()).then(s => {
 
 renderHistory();
 </script>
+  <!-- 划词弹窗设置（网页版设置页，风格与页面一致） -->
+  <div class="settings-mask" id="settingsMask" hidden>
+    <div class="settings-card">
+      <div class="settings-head">
+        <b>划词弹窗设置</b>
+        <button class="settings-close" id="settingsClose" title="关闭">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="set-row"><label>弹窗宽度</label><input type="range" id="setWidth" min="260" max="560" step="2"><span class="set-val" id="setWidthVal"></span></div>
+        <div class="set-row"><label>划词字号</label><input type="range" id="setOrigFont" min="10" max="24"><span class="set-val" id="setOrigFontVal"></span></div>
+        <div class="set-row"><label>翻译字号</label><input type="range" id="setTransFont" min="10" max="24"><span class="set-val" id="setTransFontVal"></span></div>
+        <div class="set-row"><label>背景不透明度</label><input type="range" id="setOpacity" min="30" max="100"><span class="set-val" id="setOpacityVal"></span></div>
+        <div class="set-row"><label>圆角弧度</label><input type="range" id="setRadius" min="0" max="28"><span class="set-val" id="setRadiusVal"></span></div>
+        <div class="settings-divider"></div>
+        <div class="set-row"><label>背景颜色</label><input type="color" id="setBgColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>复制键颜色</label><input type="color" id="setCopyColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>关闭键颜色</label><input type="color" id="setCloseColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>原文字色</label><input type="color" id="setOrigColor"><span class="set-val"></span></div>
+        <div class="set-row"><label>译文文字色</label><input type="color" id="setTransColor"><span class="set-val"></span></div>
+      </div>
+      <div class="settings-foot">
+        <button class="btn ghost" id="settingsReset">恢复默认</button>
+        <button class="btn primary" id="settingsSave">保存</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

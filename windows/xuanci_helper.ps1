@@ -158,6 +158,8 @@ $lastCopyText = ''
 $lastCopyTime = [DateTime]::MinValue
 
 function Show-Popup($resp) {
+    # 每次弹窗前重新读配置: 网页版设置页修改后即时生效
+    try { $script:cfg = Load-Config } catch {}
     if ($popupForm -and -not $popupForm.IsDisposed) { $popupForm.Close() }
 
     $f = New-Object System.Windows.Forms.Form

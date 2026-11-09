@@ -36,6 +36,62 @@ function getSelectionMode() {
   } catch {}
   return false;   // 默认关闭，需在网页点「开启一键划词」
 }
+// ---------- 划词弹窗配置(与 windows/xuanci_helper.ps1 的 DEFAULTS 保持一致) ----------
+const XUANCI_FILE = path.join(ROOT, 'windows', 'xuanci_config.json');
+const XUANCI_DEFAULTS = {
+  version: 2,
+  width: 350,
+  origFontSize: 14,
+  transFontSize: 15,
+  opacity: 0.98,
+  radius: 16,
+  bgColor: '#FFFDF7',
+  copyColor: '#FF3B30',
+  closeColor: '#F0EAE0',
+  origColor: '#1D1D1F',
+  transColor: '#C0392B',
+};
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+function readXuanciConfig() {
+  try {
+    if (fs.existsSync(XUANCI_FILE)) {
+      const saved = JSON.parse(fs.readFileSync(XUANCI_FILE, 'utf8'));
+      if (saved && saved.version === 2) {
+        const out = Object.assign({}, XUANCI_DEFAULTS);
+        for (const k of Object.keys(XUANCI_DEFAULTS)) {
+          if (saved[k] !== undefined && saved[k] !== null) out[k] = saved[k];
+        }
+        return out;
+      }
+    }
+  } catch {}
+  return Object.assign({}, XUANCI_DEFAULTS);
+}
+
+function writeXuanciConfig(raw) {
+  try {
+    const out = Object.assign({}, readXuanciConfig());
+    const num = (v, min, max, dflt) => {
+      const n = Number(v);
+      if (!isFinite(n)) return dflt;
+      return Math.min(max, Math.max(min, n));
+    };
+    out.width = Math.round(num(raw.width, 260, 560, out.width));
+    out.origFontSize = Math.round(num(raw.origFontSize, 10, 24, out.origFontSize));
+    out.transFontSize = Math.round(num(raw.transFontSize, 10, 24, out.transFontSize));
+    out.opacity = num(raw.opacity, 0.3, 1, out.opacity);
+    out.radius = Math.round(num(raw.radius, 0, 28, out.radius));
+    for (const k of ['bgColor', 'copyColor', 'closeColor', 'origColor', 'transColor']) {
+      if (typeof raw[k] === 'string' && HEX_RE.test(raw[k])) out[k] = raw[k].toUpperCase();
+    }
+    out.version = 2;
+    fs.mkdirSync(path.dirname(XUANCI_FILE), { recursive: true });
+    fs.writeFileSync(XUANCI_FILE, JSON.stringify(out, null, 2));
+    return true;
+  } catch { return false; }
+}
+
 function setSelectionMode(on) {
   try {
     fs.writeFileSync(MODE_FILE, JSON.stringify({ enabled: !!on }));
@@ -289,6 +345,20 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, ok ? 200 : 500, { enabled: getSelectionMode() });
       }
       return sendJson(res, 200, { enabled: getSelectionMode() });
+    }
+
+    // ---------- 划词弹窗配置（网页版设置页读写 windows/xuanci_config.json） ----------
+    if (p === '/api/xuanci-config') {
+      if (req.method === 'POST') {
+        const origin = req.headers.origin || '';
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) {
+          return sendJson(res, 403, { error: '跨源请求被拒绝' });
+        }
+        const body = JSON.parse((await readBody(req)) || '{}');
+        const ok = writeXuanciConfig(body && body.config ? body.config : body);
+        return sendJson(res, ok ? 200 : 500, ok ? { ok: true, config: readXuanciConfig() } : { error: '保存失败（检查目录权限）' });
+      }
+      return sendJson(res, 200, { config: readXuanciConfig() });
     }
 
     if (p === '/api/context-translate' && req.method === 'POST') {
