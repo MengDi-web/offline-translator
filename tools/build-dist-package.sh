@@ -17,9 +17,12 @@ rsync -a --exclude '.git' --exclude 'dist' --exclude 'build' \
 rm -f "$ROOT/dist/miaomiao翻译器-win.zip"
 python3 "$ROOT/tools/zip-utf8.py" /tmp/win-dist "$ROOT/dist/miaomiao翻译器-win.zip"
 
-echo "== 2/3 打包 macOS 子包（UTF-8 文件名标志）=="
+echo "== 2/3 打包 macOS 子包（ditto：保留符号链接/权限/签名）=="
+# 必须用 ditto 而非 zip：Python zipfile 会把 app 内的符号链接存成普通文件，
+# 解压后代码签名封印破坏，用户会看到「应用已损坏」
 rm -f "$ROOT/dist/miaomiao翻译器-mac.zip"
-python3 "$ROOT/tools/zip-utf8.py" "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao翻译器-mac.zip" "miaomiao翻译器.app"
+codesign --force --sign - --deep "$ROOT/dist/miaomiao翻译器.app"
+ditto -c -k --sequesterRsrc --keepParent "$ROOT/dist/miaomiao翻译器.app" "$ROOT/dist/miaomiao翻译器-mac.zip"
 
 echo "== 3/3 组装安装包 =="
 rm -rf "$PKG"
