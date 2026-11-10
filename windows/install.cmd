@@ -14,6 +14,8 @@ echo   miaomiao翻译器 · 一键部署（只需运行一次）
 echo   —— 自动准备 Node / Python / 翻译依赖 / 模型
 echo ==============================================
 echo.
+rem 清除"来自网络"标记(否则内置安装包/压缩包可能被系统拦截而静默失败)
+powershell -NoProfile -Command "Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue" >nul 2>&1
 
 REM ================= [1/5] Node =================
 if exist "runtime\node\node.exe" goto NODE_OK
@@ -87,10 +89,25 @@ if exist "offline\python-3.12.0-amd64.exe" (
         pause & exit /b 1
     )
 )
-"%TEMP%\miaomiao-python.exe" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_doc=0
+"%TEMP%\miaomiao-python.exe" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_doc=0 /log "%TEMP%\miaomiao-python-install.log"
 del /q "%TEMP%\miaomiao-python.exe" >nul 2>&1
-set "PYEXE=%LocalAppData%\Programs\Python\Python312\python.exe"
-set "PATH=%LocalAppData%\Programs\Python\Python312;%LocalAppData%\Programs\Python\Python312\Scripts;%PATH%"
+rem 安装路径可能因已有 Python 而异 → 逐个候选路径查找 3.12 x64
+set "PYEXE="
+if exist "%LocalAppData%\Programs\Python\Python312\python.exe" set "PYEXE=%LocalAppData%\Programs\Python\Python312\python.exe"
+if not defined PYEXE if exist "%LocalAppData%\Programs\Python\Python312-32\python.exe" set "PYEXE=%LocalAppData%\Programs\Python\Python312-32\python.exe"
+if not defined PYEXE if exist "%ProgramFiles%\Python312\python.exe" set "PYEXE=%ProgramFiles%\Python312\python.exe"
+if not defined PYEXE if exist "%ProgramFiles(x86)%\Python312\python.exe" set "PYEXE=%ProgramFiles(x86)%\Python312\python.exe"
+if not defined PYEXE for /f "delims=" %%i in ('py -3.12 -c "import sys;print(sys.executable)" 2^>nul') do if not defined PYEXE set "PYEXE=%%i"
+if not defined PYEXE (
+    echo.
+    echo [错误] 内置 Python 安装失败 - 未能找到 python.exe
+    echo        请手动安装: 双击 offline\python-3.12.0-amd64.exe
+    echo        安装时勾选 "Add python.exe to PATH", 装完重新运行本脚本
+    echo        日志: %TEMP%\miaomiao-python-install.log
+    pause & exit /b 1
+)
+for %%d in ("%PYEXE%") do set "PYDIR=%%~dpd"
+set "PATH=%PYDIR%;%PYDIR%Scripts;%PATH%"
 :PY_OK
 if not exist "%PYEXE%" (
     echo [错误] 找不到可用的 Python 3.12
