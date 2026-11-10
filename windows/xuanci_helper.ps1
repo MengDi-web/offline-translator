@@ -168,6 +168,7 @@ $lastCopyText = ''
 $lastCopyTime = [DateTime]::MinValue
 
 function Show-Popup($resp) {
+    $script:lastResp = $resp
     # 每次弹窗前重新读配置: 网页版设置页修改后即时生效
     try { $script:cfg = Load-Config } catch {}
     # 颜色跟随页面主题(服务端在响应里带了 themePalette)
@@ -227,6 +228,22 @@ function Show-Popup($resp) {
     $settingsBtn.Cursor = 'Hand'
     $settingsBtn.Add_Click({
         try { Show-Settings } catch { Log ("打开设置失败: " + $_.Exception.Message) }
+    })
+
+    # 打开翻译大页面(浏览器)
+    $pageBtn = New-Object System.Windows.Forms.Button
+    $pageBtn.Text = '打开页面'
+    $pageBtn.FlatStyle = 'Flat'
+    $pageBtn.BackColor = HexToColor $cfg.copyColor
+    $pageBtn.ForeColor = Get-ContrastText $pageBtn.BackColor
+    $pageBtn.FlatAppearance.BorderSize = 0
+    $pageBtn.Cursor = 'Hand'
+    $pageBtn.Add_Click({
+        param($sender, $e)
+        try {
+            Start-Process 'http://127.0.0.1:6688'
+            if ($script:popupForm) { $script:popupForm.Close() }
+        } catch { Log ("打开页面失败: " + $_.Exception.Message) }
     })
 
     $closeBtn = New-Object System.Windows.Forms.Button
@@ -308,6 +325,7 @@ function Show-Popup($resp) {
     $f.Controls.Add($title)
     $f.Controls.Add($bodyLbl)
     $f.Controls.Add($copyBtn)
+    $f.Controls.Add($pageBtn)
     $f.Controls.Add($settingsBtn)
     $f.Controls.Add($closeBtn)
 
@@ -327,9 +345,10 @@ function Show-Popup($resp) {
     $bodyLbl.Height = [int][Math]::Min($lineH * 6 + 14, [Math]::Max($lineH + 14, $measured.Height + 14))
     $popupH = [int]($bodyLbl.Bottom) + 40
     $f.ClientSize = New-Object System.Drawing.Size($w, $popupH)
-    $copyBtn.SetBounds(14, $bodyLbl.Bottom + 6, 90, 28)
-    $settingsBtn.SetBounds(110, $bodyLbl.Bottom + 6, 64, 28)
-    $closeBtn.SetBounds($w - 46, $bodyLbl.Bottom + 6, 32, 28)
+    $copyBtn.SetBounds(12, $bodyLbl.Bottom + 6, 82, 28)
+    $pageBtn.SetBounds(98, $bodyLbl.Bottom + 6, 68, 28)
+    $settingsBtn.SetBounds(170, $bodyLbl.Bottom + 6, 46, 28)
+    $closeBtn.SetBounds($w - 38, $bodyLbl.Bottom + 6, 26, 28)
 
     # 圆角（WinForms 原生不支持，这里用 Region 近似）
     if ($cfg.radius -gt 0) {
@@ -512,7 +531,10 @@ function Show-Settings {
                 $sender.BackColor = $dlg.Color
                 $sender.ForeColor = Get-ContrastText $dlg.Color
                 $cfg[$k] = ToHexColor $dlg.Color
+                # 手动改颜色 → 关闭"跟随主题", 否则弹窗仍用主题色, 看起来像没生效
+                $cfg.followTheme = $false
                 Save-Config $cfg
+                Log ("已改颜色 " + $k + "=" + $cfg[$k] + " (关闭跟随主题)")
             }
         })
         $parent.Controls.Add($lbl); $parent.Controls.Add($btn)
@@ -537,7 +559,14 @@ function Show-Settings {
         $cfg.transFontSize = $script:stTrack['transFontSize'].Value
         $cfg.radius = $script:stTrack['radius'].Value
         Save-Config $cfg
+        Log ("设置已保存: 宽度=" + $cfg.width + " 划词字号=" + $cfg.origFontSize +
+             " 翻译字号=" + $cfg.transFontSize + " 圆角=" + $cfg.radius +
+             " 跟随主题=" + $cfg.followTheme)
         $script:stForm.Close()
+        # 重新渲染当前弹窗, 让新设置立刻生效
+        if ($script:lastResp) {
+            try { Show-Popup $script:lastResp } catch { Log ("刷新弹窗失败: " + $_.Exception.Message) }
+        }
     })
     $sf.Controls.Add($okBtn)
 

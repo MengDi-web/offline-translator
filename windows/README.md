@@ -27,6 +27,11 @@
 若出现「翻译依赖无法加载」：双击安装包内 `offline\vc_redist.x64.exe` 安装（需管理员确认，一次即可），
 然后重新运行 install.cmd。
 
+## 桌面快捷方式（推荐）
+
+双击 `windows\create-shortcut.cmd` → 桌面会出现带图标的「miaomiao翻译器」，以后双击它启动即可。
+（图标文件是 `windows\miaomiao.ico`，想换图标可在快捷方式属性里改）
+
 ## 划词翻译（可选）
 
 1. 在网页上**点一次「开启一键划词」**按钮（只需一次）
