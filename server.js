@@ -146,6 +146,7 @@ function findNmtPython() {
   const candidates = [
     '/tmp/offline-nmt-venv/bin/python',
     bundled,
+    path.join(ROOT, 'runtime', 'python312', 'python.exe'),   // 免安装版 Python(MSI 失败时的兜底)
     path.join(ROOT, 'neural', '.venv', 'Scripts', 'python.exe'),
     path.join(ROOT, 'neural', '.venv', 'bin', 'python'),
     path.join(ROOT, 'venv', 'Scripts', 'python.exe'),

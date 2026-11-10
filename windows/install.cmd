@@ -98,7 +98,9 @@ if not defined PYEXE if exist "%LocalAppData%\Programs\Python\Python312-32\pytho
 if not defined PYEXE if exist "%ProgramFiles%\Python312\python.exe" set "PYEXE=%ProgramFiles%\Python312\python.exe"
 if not defined PYEXE if exist "%ProgramFiles(x86)%\Python312\python.exe" set "PYEXE=%ProgramFiles(x86)%\Python312\python.exe"
 if not defined PYEXE for /f "delims=" %%i in ('py -3.12 -c "import sys;print(sys.executable)" 2^>nul') do if not defined PYEXE set "PYEXE=%%i"
-if not defined PYEXE (
+if defined PYEXE goto PY_SEARCH_OK
+rem ---- MSI 安装失败 → 改用免安装版(纯 zip 解压, 不写注册表, 不需要管理员) ----
+if not exist "offline\python-3.12.0-embed-amd64.zip" (
     echo.
     echo [错误] 内置 Python 安装失败 - 未能找到 python.exe
     echo        请手动安装: 双击 offline\python-3.12.0-amd64.exe
@@ -106,6 +108,17 @@ if not defined PYEXE (
     echo        日志: %TEMP%\miaomiao-python-install.log
     pause & exit /b 1
 )
+echo        MSI 安装失败，改用免安装版 Python（解压即用）
+if exist "runtime\python312" rmdir /s /q "runtime\python312"
+powershell -NoProfile -Command "Expand-Archive -Path 'offline\python-3.12.0-embed-amd64.zip' -DestinationPath 'runtime\python312' -Force"
+if not exist "runtime\python312\python.exe" (
+    echo [错误] 免安装版 Python 解压失败（磁盘空间或杀毒软件拦截）
+    pause & exit /b 1
+)
+powershell -NoProfile -Command "if (-not (Select-String -Path 'runtime\python312\python312._pth' -Pattern 'site-packages' -SimpleMatch -Quiet)) { Add-Content -Path 'runtime\python312\python312._pth' -Value 'Lib\site-packages' }"
+set "PYEXE=%CD%\runtime\python312\python.exe"
+set "EMBED_PY=1"
+:PY_SEARCH_OK
 for %%d in ("%PYEXE%") do set "PYDIR=%%~dpd"
 set "PATH=%PYDIR%;%PYDIR%Scripts;%PATH%"
 :PY_OK
@@ -121,6 +134,7 @@ if errorlevel 1 (
 echo [2/5] Python 就绪
 
 REM ================= [3/5] 翻译环境 + 依赖 =================
+if defined EMBED_PY goto EMBED_DEPS
 REM 已有 venv 但不是 3.12 x64 → 删除重建
 if exist "neural\.venv\Scripts\python.exe" (
     neural\.venv\Scripts\python -c "import sys,struct;raise SystemExit(0 if sys.version_info[:2]==(3,12) and struct.calcsize('P')*8==64 else 1)" >nul 2>&1
@@ -147,15 +161,27 @@ if not exist "neural\.venv\Scripts\python.exe" (
 ) else (
     echo [3/5] 翻译环境已存在，校验依赖...
 )
+goto DEPS_DONE
+:EMBED_DEPS
+echo [3/5] 免安装环境: 解压翻译依赖到 site-packages（离线）
+if not exist "runtime\python312\Lib\site-packages" mkdir "runtime\python312\Lib\site-packages"
+for %%w in ("wheels\*.whl") do "%SystemRoot%\System32\tar.exe" -xf "%%~fw" -C "runtime\python312\Lib\site-packages" >nul 2>&1
+:DEPS_DONE
 REM 关键验收：真正 import 一次（能发现缺 VC++ 运行库等问题）
-neural\.venv\Scripts\python -c "import torch, transformers, sentencepiece, numpy" >nul 2>&1
+set "RUNPY=neural\.venv\Scripts\python.exe"
+if defined EMBED_PY set "RUNPY=runtime\python312\python.exe"
+"%RUNPY%" -c "import torch, transformers, sentencepiece, numpy" >nul 2>&1
 if errorlevel 1 (
     echo.
     echo [错误] 翻译依赖无法加载，神经翻译不可用。
     echo        最常见原因：缺少微软 VC++ 运行库。
     echo        请双击安装包内 offline\vc_redist.x64.exe（需管理员确认，一次即可），
     echo        安装完成后重新运行本脚本。
-    echo        若仍失败：删除 neural\.venv 文件夹后重新运行本脚本。
+    if defined EMBED_PY (
+        echo        若仍失败：删除 runtime\python312 文件夹后重新运行本脚本。
+    ) else (
+        echo        若仍失败：删除 neural\.venv 文件夹后重新运行本脚本。
+    )
     pause & exit /b 1
 )
 echo [3/5] 依赖就绪
