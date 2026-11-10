@@ -458,6 +458,7 @@ function Show-Settings {
     $script:stForm = $sf
     $script:stTrack = @{}
     $script:stValLbl = @{}
+    $script:stColorBtns = @{}
 
     function Add-Slider($parent, $y, $labelText, $min, $max, $value, $tag) {
         $lbl = New-Object System.Windows.Forms.Label
@@ -500,6 +501,7 @@ function Show-Settings {
         $btn.FlatStyle = 'Flat'
         $btn.BackColor = HexToColor $cfg[$colorKey]
         $btn.ForeColor = Get-ContrastText $btn.BackColor
+        $script:stColorBtns[[string]$colorKey] = $btn
         $btn.Add_Click({
             param($sender, $e)
             $k = [string]$sender.Tag
@@ -547,6 +549,40 @@ function Show-Settings {
     $cancelBtn.ForeColor = Get-ContrastText $cancelBtn.BackColor
     $cancelBtn.Add_Click({ param($sender, $e) $script:stForm.Close() })
     $sf.Controls.Add($cancelBtn)
+
+    # 恢复默认: 取当前页面主题配色
+    $resetBtn = New-Object System.Windows.Forms.Button
+    $resetBtn.Text = '恢复默认'
+    $resetBtn.SetBounds(120, 412, 90, 30)
+    $resetBtn.FlatStyle = 'Flat'
+    $resetBtn.BackColor = HexToColor '#F0EAE0'
+    $resetBtn.ForeColor = Get-ContrastText $resetBtn.BackColor
+    $resetBtn.Add_Click({
+        param($sender, $e)
+        try {
+            $theme = Invoke-RestMethod -Uri 'http://127.0.0.1:6688/api/ui-theme' -TimeoutSec 3
+            $pal = $theme.palette
+            if ($pal) {
+                foreach ($pair in @(
+                    @('bgColor', 'bgColor'), @('origColor', 'origColor'), @('transColor', 'transColor'),
+                    @('copyColor', 'copyColor'), @('closeColor', 'closeColor'))) {
+                    $v = $pal.($pair[1])
+                    if ($v) { $cfg[$pair[0]] = [string]$v }
+                }
+                $cfg.followTheme = $true
+                Save-Config $cfg
+                foreach ($k in @('bgColor', 'copyColor', 'closeColor', 'origColor', 'transColor')) {
+                    if ($script:stColorBtns.ContainsKey($k) -and $cfg[$k]) {
+                        $b = $script:stColorBtns[$k]
+                        $b.BackColor = HexToColor $cfg[$k]
+                        $b.ForeColor = Get-ContrastText $b.BackColor
+                    }
+                }
+                Log ("已恢复默认(跟随主题: " + $theme.theme + ")")
+            }
+        } catch { Log ("恢复默认失败: " + $_.Exception.Message) }
+    })
+    $sf.Controls.Add($resetBtn)
 
     $sf.ShowDialog() | Out-Null
 }

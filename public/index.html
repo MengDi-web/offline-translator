@@ -180,14 +180,14 @@ html[data-theme="peach"] {        /* 桃子：浅粉白底 + 青柠绿强调（�
     width: 100%; max-width: 100%; min-height: 120px; resize: none;
     background: var(--panel); color: var(--text);
     border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px 16px 54px; font-size: 16px; line-height: 1.6;
+    padding: 16px; font-size: 16px; line-height: 1.6;
     outline: none; font-family: inherit;
     box-shadow: var(--shadow);
   }
   textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
   .input-actions {
-    position: absolute; left: 12px; bottom: 10px; right: 12px;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin-top: 10px; padding: 0 4px;
   }
   .hint { font-size: 11px; color: var(--muted); }
   .btn {
@@ -526,7 +526,23 @@ async function openSettingsPanel() {
 $('#settingsClose')?.addEventListener('click', () => { $('#settingsMask').hidden = true; });
 $('#settingsMask')?.addEventListener('click', (e) => { if (e.target === $('#settingsMask')) $('#settingsMask').hidden = true; });
 $('#setFollowTheme')?.addEventListener('change', applyFollowThemeUI);
-$('#settingsReset')?.addEventListener('click', () => fillSettings(Object.assign({}, XC_DEFAULTS, { followTheme: true })));
+$('#settingsReset')?.addEventListener('click', async () => {
+  // 恢复默认 = 跟随当前页面主题的配色
+  try {
+    const r = await fetch('/api/ui-theme').then(x => x.json());
+    const pal = r.palette || {};
+    fillSettings(Object.assign({}, XC_DEFAULTS, {
+      bgColor: pal.bgColor || XC_DEFAULTS.bgColor,
+      origColor: pal.origColor || XC_DEFAULTS.origColor,
+      transColor: pal.transColor || XC_DEFAULTS.transColor,
+      copyColor: pal.copyColor || XC_DEFAULTS.copyColor,
+      closeColor: pal.closeColor || XC_DEFAULTS.closeColor,
+      followTheme: true,
+    }));
+  } catch {
+    fillSettings(Object.assign({}, XC_DEFAULTS, { followTheme: true }));
+  }
+});
 $('#settingsSave')?.addEventListener('click', async () => {
   const btn = $('#settingsSave');
   try {

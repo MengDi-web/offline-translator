@@ -544,6 +544,8 @@ if (process.env.PORT) port = parseInt(process.env.PORT, 10);
 
 dict.load();
 startNmt();
+// 每次启动都把「一键划词」重置为关闭(用户需在网页上手动开启)
+setSelectionMode(false);
 
 // 端口被占用（服务已在运行 / 双击两次启动器）→ 友好提示并正常退出，不抛崩溃堆栈
 server.on('error', (e) => {
