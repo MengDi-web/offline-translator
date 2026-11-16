@@ -783,8 +783,7 @@ function render(r, container) {
     if (r.suggestions && r.suggestions.length) {
       html += `<div class="suggest" style="display:flex">${r.suggestions.map(s => `<span class="chip" data-w="${esc(s)}">${esc(s)}</span>`).join('')}</div>`;
       setTimeout(() => {
-        bindRefresh(container, lastResult);
-  container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
+        container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
           input.value = c.dataset.w; doTranslate();
         }));
       }, 0);
@@ -805,6 +804,7 @@ function render(r, container) {
     input.value = c.dataset.w; doTranslate();
   }));
   bindCopy(container, r);
+  bindRefresh(container, r);
 }
 function bindRefresh(container, r) {
   container.querySelectorAll('.refreshBtn').forEach(btn => btn.addEventListener('click', () => {
