@@ -261,6 +261,9 @@ function sanitizeNmtOutput(text) {
   // 重复单元要求 ≥2 字符，避免误伤 "哈哈"（haha）这类合法双字词。
   const rep = s.match(/^(.{2,12})\1+$/);
   if (rep) s = rep[1];
+  // 中文标点前不留空格(新模型 en→中 会输出 "窗口 。")
+  s = s.replace(/\s+([。，、；：！？》」』）])/g, '$1');
+  s = s.replace(/([《「『（])\s+/g, '$1');
   return s.trim();
 }
 
