@@ -20,20 +20,59 @@
   button.primary { background:#ff3b30; color:#fff; border-color:#ff3b30; }
   button:hover { filter:brightness(1.04); }
   .msg { font-size:12px; margin-top:10px; min-height:16px; color:#7cb342; }
-  /* 预览 */
-  .preview-page { border-radius:14px; padding:18px; border:1px solid; }
-  .pv-logo { width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px; }
-  .pv-card { border-radius:12px; padding:14px; margin-top:12px; border:1px solid; }
-  .pv-rough { font-size:19px; font-weight:600; margin:6px 0 10px; }
-  .pv-chip { display:inline-block; font-size:11px; padding:3px 10px; border-radius:999px; margin-right:6px; }
-  .pv-input { border-radius:10px; padding:10px; font-size:13px; border:1px solid; margin-top:8px; }
-  .pv-popup { margin-top:14px; border-radius:14px; padding:14px; border:1px solid; position:relative; }
-  .pv-popup .pv-t { font-size:14px; font-weight:700; }
-  .pv-popup .pv-b { font-size:15px; margin-top:6px; }
-  .pv-popup .pv-btns { margin-top:10px; display:flex; gap:8px; }
-  .pv-popup .pv-btn { font-size:12px; padding:4px 12px; border-radius:8px; }
-  .pv-popup .pv-x { position:absolute; right:10px; top:10px; font-size:12px; padding:3px 9px; border-radius:8px; }
-  .hint { font-size:12px; color:var(--muted); line-height:1.7; margin-top:12px; }
+  /* ===== 全模拟预览 ===== */
+  .mock-root {
+    --bg:#fffafa; --panel:#fff1f0; --panel2:#ffe7e5; --border:#ffcdc7; --border-strong:#ffd4cc;
+    --text:#000; --muted2:#666; --accent:#b8ee43; --accent-deep:#ff837a;
+    --accent-soft:rgba(184,238,67,.22); --main-btn:#ffadad; --radius:16px;
+    background:var(--bg); border:1px solid var(--border); border-radius:16px;
+    padding:18px 20px; overflow:hidden;
+  }
+  .mk-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .mk-brand { display:flex; align-items:center; gap:12px; }
+  .mk-logo { width:40px; height:40px; border-radius:12px; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800;
+    box-shadow:0 4px 12px rgba(0,0,0,.16); }
+  .mk-title { font-size:19px; font-weight:800; color:var(--text); }
+  .mk-sub { font-size:11px; color:var(--muted2); margin-top:2px; }
+  .mk-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mk-badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .mk-badge { font-size:10.5px; padding:3px 10px; border-radius:999px; background:var(--accent-soft);
+    color:var(--accent-deep); border:1px solid var(--accent); font-weight:500; }
+  .mk-ctrl { font-size:11.5px; font-weight:600; padding:4px 11px; border-radius:999px;
+    background:var(--panel); color:var(--accent-deep); border:1px solid var(--accent); }
+  .mk-selection-main { display:block; margin:14px auto 0; max-width:400px; width:100%;
+    background:var(--main-btn); color:#fff; border-radius:12px; padding:10px 16px;
+    font-size:13.5px; font-weight:700; text-align:center; }
+  .mk-input { margin-top:12px; border:1px solid var(--border); border-radius:var(--radius);
+    background:var(--panel); color:var(--muted2); padding:14px; min-height:84px; font-size:14.5px;
+    box-shadow:0 8px 24px rgba(120,100,60,.08); }
+  .mk-input-actions { display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding:0 3px; }
+  .mk-hint2 { font-size:10.5px; color:var(--muted2); }
+  .mk-go { background:var(--panel2); border:1px solid var(--border-strong); color:var(--text);
+    border-radius:10px; padding:6px 20px; font-size:12.5px; font-weight:700; }
+  .mk-result { margin-top:12px; background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px; box-shadow:0 8px 24px rgba(120,100,60,.08); }
+  .mk-label { font-size:10px; color:var(--muted2); letter-spacing:.08em; text-transform:uppercase; }
+  .mk-rough { font-size:17.5px; font-weight:600; color:var(--text); margin:7px 0 11px; line-height:1.6; }
+  .mk-row { display:flex; gap:7px; flex-wrap:wrap; }
+  .mk-btn { font-size:11.5px; font-weight:600; padding:5px 12px; border-radius:9px;
+    background:var(--panel2); border:1px solid var(--border-strong); color:var(--text); }
+  .mk-btn.accent { background:var(--accent); border-color:var(--accent); color:#1a1a1a; }
+
+  .mk-pop-wrap { margin-top:16px; display:flex; justify-content:center; }
+  .pop { width:330px; border-radius:14px; padding:13px 15px 11px; position:relative;
+    background:var(--popBg); border:1px solid var(--popBorder); box-shadow:0 10px 30px rgba(0,0,0,.28); }
+  .pop-x { position:absolute; right:9px; top:9px; width:23px; height:23px; border-radius:7px;
+    display:flex; align-items:center; justify-content:center; font-size:11px;
+    background:var(--popClose); color:var(--popCloseText); }
+  .pop-t { font-size:12.5px; font-weight:700; color:var(--popOrig); padding-right:24px; }
+  .pop-b { font-size:13.5px; color:var(--popTrans); margin-top:6px; line-height:1.55; }
+  .pop-btns { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .pop-btn { font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:8px;
+    background:var(--popCopy); color:var(--popCopyText); }
+  .pop-btn.ghost { background:var(--popClose); color:var(--popCloseText); }
+  .preview-title { font-size:12px; color:var(--muted); letter-spacing:.08em; margin:0 0 8px; text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -59,25 +98,58 @@
 
   <div>
     <div class="card">
-      <div class="group-title">页面预览</div>
-      <div class="preview-page" id="pvPage">
-        <span class="pv-logo" id="pvLogo">喵</span>
-        <div class="pv-card" id="pvCard">
-          <div style="font-size:11px;letter-spacing:.08em">翻译结果</div>
-          <div class="pv-rough" id="pvRough">今天天气很好，我们去公园散步吧</div>
-          <span class="pv-chip" id="pvChip1">100% 离线</span>
-          <span class="pv-chip" id="pvChip2">EN 72,000 词</span>
-          <div class="pv-input" id="pvInput">输入要翻译的内容…</div>
+      <div class="preview-title">主页效果图（实时联动）</div>
+      <div class="mock-root" id="mockRoot">
+        <div class="mk-header">
+          <div class="mk-brand">
+            <div class="mk-logo">喵</div>
+            <div>
+              <div class="mk-title">喵喵翻译器</div>
+              <div class="mk-sub">离线中英互译 · 词典 + 本地神经模型</div>
+            </div>
+          </div>
+          <div class="mk-right">
+            <div class="mk-badges">
+              <span class="mk-badge">100% 离线</span>
+              <span class="mk-badge">EN 72,000 词 · ZH 196,682 词条</span>
+              <span class="mk-badge">神经就绪</span>
+            </div>
+            <span class="mk-ctrl">桃子 ▾</span>
+            <span class="mk-ctrl">⚙︎ 桃子</span>
+          </div>
+        </div>
+
+        <div class="mk-selection-main">开启一键划词</div>
+
+        <div class="mk-input">输入英文或中文，如：hello world / 今天天气很好</div>
+        <div class="mk-input-actions">
+          <span class="mk-hint2">Enter 翻译 · Shift+Enter 换行</span>
+          <span class="mk-go">翻 译</span>
+        </div>
+
+        <div class="mk-result">
+          <div class="mk-label">英 → 中 · 神经翻译 · 本地模型</div>
+          <div class="mk-rough">今天天气非常寒冷。</div>
+          <div class="mk-row">
+            <span class="mk-btn">复制</span>
+            <span class="mk-btn">↻ 换个译法</span>
+            <span class="mk-btn accent">译法 2</span>
+          </div>
         </div>
       </div>
-      <div class="group-title" style="margin-top:18px">划词弹窗预览</div>
-      <div class="pv-popup" id="pvPopup">
-        <span class="pv-x" id="pvX">✕</span>
-        <div class="pv-t" id="pvT">今天非常冷</div>
-        <div class="pv-b" id="pvB">It's very cold today.</div>
-        <div class="pv-btns">
-          <span class="pv-btn" id="pvCopy">复制译文</span>
-          <span class="pv-btn" id="pvSet">设置</span>
+
+      <div class="preview-title" style="margin-top:16px">划词弹窗效果图</div>
+      <div class="mk-pop-wrap">
+        <div class="pop" id="popMock">
+          <span class="pop-x">✕</span>
+          <div class="pop-t">The weather is very cold today.</div>
+          <div class="pop-b">今天天气非常寒冷。</div>
+          <div class="pop-btns">
+            <span class="pop-btn">复制译文</span>
+            <span class="pop-btn">↻</span>
+            <span class="pop-btn ghost">打开页面</span>
+            <span class="pop-btn ghost">设置</span>
+          </div>
         </div>
       </div>
     </div>
@@ -86,24 +158,24 @@
 
 <script>
 const PAGE_FIELDS = [
-  ['bg', '页面背景', '#fff6f9'],
-  ['panel', '卡片背景', '#fffafc'],
-  ['panel2', '次级面板', '#fdeef3'],
-  ['border', '边框', '#f3d9e2'],
-  ['borderStrong', '深边框', '#e8bfcd'],
-  ['text', '正文文字', '#3b1f28'],
-  ['muted', '次要文字', '#8d6a76'],
-  ['accent', '强调色（草绿）', '#7cb342'],
-  ['accentDeep', '强调深色', '#67973a'],
-  ['mainBtn', '大按钮（开启划词）', '#ec6b93'],
+  ['bg', '页面背景', '#fff5f5'],
+  ['panel', '卡片背景', '#fdfcfc'],
+  ['panel2', '次级面板', '#fff1f0'],
+  ['border', '边框', '#ff9f94'],
+  ['borderStrong', '深边框', '#ffd4cc'],
+  ['text', '正文文字', '#000000'],
+  ['muted', '次要文字', '#000000'],
+  ['accent', '强调色（青柠绿）', '#b2f425'],
+  ['accentDeep', '强调深色', '#ff837a'],
+  ['mainBtn', '大按钮（开启划词）', '#ffadad'],
 ];
 const POPUP_FIELDS = [
-  ['popupBg', '弹窗背景', '#fffafc'],
-  ['popupOrig', '原文颜色', '#3b1f28'],
-  ['popupTrans', '译文颜色', '#3b1f28'],
-  ['popupCopy', '复制键颜色', '#7cb342'],
-  ['popupClose', '关闭键颜色', '#f7d6e0'],
-  ['popupBorder', '弹窗边框', '#f3d9e2'],
+  ['popupBg', '弹窗背景', '#000000'],
+  ['popupOrig', '原文颜色', '#ffc8c2'],
+  ['popupTrans', '译文颜色', '#ffffff'],
+  ['popupCopy', '复制键背景', '#ffd4cc'],
+  ['popupClose', '关闭键背景', '#ffd4cc'],
+  ['popupBorder', '弹窗边框', '#000000'],
 ];
 
 const values = {};
@@ -137,51 +209,41 @@ document.addEventListener('input', (e) => {
   sync(k, v.toUpperCase().startsWith('#') ? v : '#' + v, e.target);
 });
 
-function render() {
-  const v = values;
-  const page = document.getElementById('pvPage');
-  page.style.background = v.bg;
-  page.style.borderColor = v.border;
-  document.getElementById('pvLogo').style.background = v.accent;
-  const card = document.getElementById('pvCard');
-  card.style.background = v.panel;
-  card.style.borderColor = v.border;
-  card.style.color = v.text;
-  document.getElementById('pvRough').style.color = v.text;
-  [['pvChip1'], ['pvChip2']].forEach(([id]) => {
-    const el = document.getElementById(id);
-    el.style.background = v.accent + '29';   // 16% alpha
-    el.style.color = v.accentDeep;
-    el.style.border = '1px solid ' + v.accent;
-  });
-  const input = document.getElementById('pvInput');
-  input.style.background = v.panel2;
-  input.style.borderColor = v.border;
-  input.style.color = v.muted;
-  document.querySelector('.preview-page').style.boxShadow = '0 8px 24px rgba(120,100,60,.10)';
-
-  const pop = document.getElementById('pvPopup');
-  pop.style.background = v.popupBg;
-  pop.style.borderColor = v.popupBorder;
-  document.getElementById('pvT').style.color = v.popupOrig;
-  document.getElementById('pvB').style.color = v.popupTrans;
-  const copy = document.getElementById('pvCopy');
-  copy.style.background = v.popupCopy;
-  copy.style.color = contrast(v.popupCopy);
-  const set = document.getElementById('pvSet');
-  set.style.background = v.popupCopy;
-  set.style.color = contrast(v.popupCopy);
-  const x = document.getElementById('pvX');
-  x.style.background = v.popupClose;
-  x.style.color = contrast(v.popupClose);
-  // 暴露给外层(Mac 预览用颜色)
-  document.title = '配色预览 ' + v.accent;
+function contrast(hex) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#3a2f25' : '#ffffff';
+}
+function hexA(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
 }
 
-function contrast(hex) {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  const lum = 0.299*r + 0.587*g + 0.114*b;
-  return lum > 150 ? '#322b25' : '#ffffff';
+function render() {
+  const v = values;
+  const root = document.getElementById('mockRoot');
+  const set = (k, val) => root.style.setProperty(k, val);
+  set('--bg', v.bg);
+  set('--panel', v.panel);
+  set('--panel2', v.panel2);
+  set('--border', v.border);
+  set('--border-strong', v.borderStrong);
+  set('--text', v.text);
+  set('--muted2', v.muted);
+  set('--accent', v.accent);
+  set('--accent-deep', v.accentDeep);
+  set('--accent-soft', hexA(v.accent, 0.22));
+  set('--main-btn', v.mainBtn);
+
+  const pop = document.getElementById('popMock');
+  const pset = (k, val) => pop.style.setProperty(k, val);
+  pset('--popBg', v.popupBg);
+  pset('--popBorder', v.popupBorder);
+  pset('--popOrig', v.popupOrig);
+  pset('--popTrans', v.popupTrans);
+  pset('--popCopy', v.popupCopy);
+  pset('--popCopyText', contrast(v.popupCopy));
+  pset('--popClose', v.popupClose);
+  pset('--popCloseText', contrast(v.popupClose));
 }
 
 function payload() {
@@ -227,7 +289,30 @@ document.getElementById('copy').addEventListener('click', async () => {
   }
 });
 
-render();
+// 打开时读取上次保存的草稿, 方便在此基础上继续调
+(async () => {
+  try {
+    const d = await fetch('/api/theme-draft').then(r => r.json());
+    const dft = (d && d.draft) ? d.draft : d;   // 接口直接返回草稿本体
+    if (dft && dft.page && dft.popup) {
+      const map = {
+        bg: dft.page.bg, panel: dft.page.panel, panel2: dft.page.panel2,
+        border: dft.page.border, borderStrong: dft.page.borderStrong,
+        text: dft.page.text, muted: dft.page.muted,
+        accent: dft.page.accent, accentDeep: dft.page.accentDeep, mainBtn: dft.page.mainBtn,
+        popupBg: dft.popup.bgColor, popupOrig: dft.popup.origColor, popupTrans: dft.popup.transColor,
+        popupCopy: dft.popup.copyColor, popupClose: dft.popup.closeColor, popupBorder: dft.popup.borderColor,
+      };
+      Object.entries(map).forEach(([k, v]) => {
+        if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) {
+          values[k] = v;
+          document.querySelectorAll('[data-k="' + k + '"]').forEach(el => { el.value = v; });
+        }
+      });
+    }
+  } catch (e) { /* 离线打开时忽略 */ }
+  render();
+})();
 </script>
 </body>
 </html>
