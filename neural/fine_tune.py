@@ -22,8 +22,6 @@ DATA_BASE = os.path.join(ROOT, 'neural', 'data')
 CKPT_DIR = os.path.join(ROOT, 'neural', 'checkpoints')
 os.makedirs(CKPT_DIR, exist_ok=True)
 
-DEVICE = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
-print('device:', DEVICE)
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -36,32 +34,49 @@ def parse_args():
     p.add_argument('--max_steps', type=int, default=0, help='0=不限制')
     p.add_argument('--resume', default=None)
     p.add_argument('--log_every', type=int, default=200)
-    p.add_argument('--data', choices=['clean', 'mix', 'long'], default='mix',
-                   help='训练数据目录: clean=基础语料, mix=基础+长难句(默认), long=仅长难句')
+    p.add_argument('--data', default='mix',
+                   help='训练数据目录名(neural/data/<名字>): clean/mix/long/tune-en2zh 等')
     p.add_argument('--orientation', choices=['zh2en', 'en2zh'], default='zh2en',
                    help='训练方向（长难句库可互换两列）')
     p.add_argument('--tag', default='ft', help='检查点文件名后缀')
     p.add_argument('--lang_code', default=None, help='目标侧语言代码前缀，如 >>cmn_Hans<< (en2zh 用)')
+    p.add_argument('--model', default=None, help='起始模型目录(默认用预训练, 可指定已有的 -ft 模型)')
+    p.add_argument('--dev_dir', default='clean', help='dev 评测数据目录(默认 clean)')
+    p.add_argument('--dev_limit', type=int, default=0, help='dev 评测最多用多少条(0=全部, CPU 训练建议 100)')
+    p.add_argument('--device', default='auto', choices=['auto', 'cpu', 'mps'],
+                   help='训练设备: auto=优先 MPS, cpu=强制 CPU(MPS 训练出现 NaN 时用)')
     return p.parse_args()
 
 ARGS = parse_args()
 
+if ARGS.device == 'cpu':
+    DEVICE = 'cpu'
+elif ARGS.device == 'mps':
+    DEVICE = 'mps'
+else:
+    DEVICE = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
+print('device:', DEVICE)
+
+
 # 按方向确定源/目标文件后缀与预训练模型目录
 SRC_SUF, TGT_SUF = ('zh', 'en') if ARGS.orientation == 'zh2en' else ('en', 'zh')
-MODEL_DIR = os.path.join(ROOT, 'neural', 'models',
+MODEL_DIR = ARGS.model or os.path.join(ROOT, 'neural', 'models',
                          'opus-mt-zh-en' if ARGS.orientation == 'zh2en' else 'opus-mt-en-zh')
 CKPT_BEST = os.path.join(CKPT_DIR, f'ft-{ARGS.tag}-best.pt')
 CKPT_LATEST = os.path.join(CKPT_DIR, f'ft-{ARGS.tag}-latest.pt')
 
 print('loading tokenizer/model from', MODEL_DIR)
 tok = MarianTokenizer.from_pretrained(MODEL_DIR)
-model = MarianMTModel.from_pretrained(MODEL_DIR).to(DEVICE)
-print(f'model params: {sum(p.numel() for p in model.parameters())/1e6:.1f}M')
+model = MarianMTModel.from_pretrained(MODEL_DIR)
+# 关键: 发布用模型是 fp16, 直接在 fp16 上训练 AdamW 会溢出成 NaN(实测第1步后 189 个张量变 NaN)
+# → 训练前统一转 float32, 训练完再转回 fp16
+model = model.float().to(DEVICE)
+print(f'model params: {sum(p.numel() for p in model.parameters())/1e6:.1f}M (fp32)')
 
 def load_lines(split, limit=0):
     src, tgt = [], []
     # dev 评测集始终用基础语料（mix/long 只有 train）
-    data_dir = os.path.join(DATA_BASE, 'clean' if split == 'dev' else ARGS.data)
+    data_dir = os.path.join(DATA_BASE, ARGS.dev_dir if split == 'dev' else ARGS.data)
     with open(os.path.join(data_dir, f'{split}.{SRC_SUF}'), encoding='utf-8') as fs, \
          open(os.path.join(data_dir, f'{split}.{TGT_SUF}'), encoding='utf-8') as ft:
         for i, (s, t) in enumerate(zip(fs, ft)):
@@ -106,10 +121,11 @@ def evaluate():
                 hyps.append(tok.decode(row, skip_special_tokens=True))
                 refs.append([dev_tgt[i+k]])
     import sacrebleu
-    return sacrebleu.corpus_bleu(hyps, refs).score
+    tok_opt = 'zh' if ARGS.orientation == 'en2zh' else '13a'
+    return sacrebleu.corpus_bleu(hyps, refs, tokenize=tok_opt).score
 
 train_src, train_tgt = load_lines('train', ARGS.limit)
-dev_src, dev_tgt = load_lines('dev')
+dev_src, dev_tgt = load_lines('dev', ARGS.dev_limit)
 print(f'train: {len(train_src)}, dev: {len(dev_src)}')
 
 opt = torch.optim.AdamW(model.parameters(), lr=ARGS.lr, weight_decay=0.01)

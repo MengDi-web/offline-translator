@@ -228,14 +228,14 @@ function startNmt() {
   });
 }
 
-function nmtRequest(text, dir, timeoutMs = 60000) {
+function nmtRequest(text, dir, timeoutMs = 60000, variant = 0) {
   if (!nmt || !nmtReady) return Promise.resolve({ error: 'nmt 未就绪' });
   const id = ++nmtId;
   return new Promise((resolve) => {
     const job = { id, resolve };
     nmtQueue.push(job);
     try {
-      nmt.stdin.write(JSON.stringify({ id, text, dir }) + '\n');
+      nmt.stdin.write(JSON.stringify({ id, text, dir, variant }) + '\n');
     } catch {
       // Python 子进程刚退出、exit 回调尚未置空 nmt 的间隙：同步写入会抛异常 → 优雅降级
       const i = nmtQueue.indexOf(job);
@@ -287,27 +287,31 @@ function splitForNmt(text, maxChars = 50) {
   return chunks.length ? chunks : [s];
 }
 
-function safeNmtTranslate(text, dir) {
-  const chunks = splitForNmt(text);
+function safeNmtTranslate(text, dir, variant = 0) {
+  // 块大小按方向: en→中 输出更短、长句需整句(300 字符);
+  // 中→英 模型易提前停止 → 小块(50 字符)。variant 3 用更细的块。
+  let maxChars = dir === 'en2zh' ? 300 : 50;
+  if (variant === 3) maxChars = dir === 'en2zh' ? 120 : 25;
+  const chunks = splitForNmt(text, maxChars);
   if (chunks.length > 1) {
     // 逐块翻译后拼接(串行, 避免同时压满 CPU)
     return chunks.reduce((accP, chunk) => accP.then(async (acc) => {
       if (acc.error) return acc;
-      const r = await safeNmtTranslateOne(chunk, dir);
+      const r = await safeNmtTranslateOne(chunk, dir, variant);
       if (r.error) return r;
       return { text: acc.text ? (acc.text + ' ' + r.text) : r.text };
     }), Promise.resolve({ text: '' }));
   }
-  return safeNmtTranslateOne(text, dir);
+  return safeNmtTranslateOne(text, dir, variant);
 }
 
-function safeNmtTranslateOne(text, dir) {
+function safeNmtTranslateOne(text, dir, variant = 0) {
   const segs = [];
   const protectedText = String(text).replace(/`[^`]*`|https?:\/\/\S+|<\S+>/g, (m) => {
     segs.push(m);
     return 'CODE' + (segs.length - 1);
   });
-  return nmtRequest(protectedText, dir).then((r) => {
+  return nmtRequest(protectedText, dir, 60000, variant).then((r) => {
     if (r.error) return r;
     let out = sanitizeNmtOutput(r.text);
     if (segs.length) {
@@ -371,6 +375,7 @@ const server = http.createServer(async (req, res) => {
       const q = (u.searchParams.get('q') || '').trim();
       const dir = u.searchParams.get('dir') || 'auto';
       const mode = u.searchParams.get('mode') || 'auto';
+      const variant = Math.max(0, Math.min(3, parseInt(u.searchParams.get('variant') || '0', 10) || 0));
       if (!q) return sendJson(res, 400, { error: '缺少参数 q' });
       const t0 = Date.now();
       let degraded = false;
@@ -394,13 +399,14 @@ const server = http.createServer(async (req, res) => {
       // 其它为 dict → 保持 false
 
       if (useNmt && (effDir === 'zh2en' || effDir === 'en2zh')) {
-        const nr = await safeNmtTranslate(q, effDir);
+        const nr = await safeNmtTranslate(q, effDir, variant);
         if (!nr.error && (nr.text || '').length >= 2) {
           const result = {
             engine: 'nmt', dir: effDir, detected: d, kind: 'sentence', input: q,
             translation: nr.text,
             dictRough: dictResult.rough || (dictResult.translation ? dictResult.translation[0] : ''),
             note: '神经翻译（本地模型）',
+            variant: variant,             // 0=默认, 1/2/3=换个译法
             ms: Date.now() - t0,
           };
           return sendJson(res, 200, result);
@@ -497,7 +503,8 @@ const server = http.createServer(async (req, res) => {
       }
       const body = JSON.parse((await readBody(req)) || '{}');
       const t0 = Date.now();
-      const result = await context.contextTranslate(body, (text, dir) => safeNmtTranslate(text, dir).then((r) => {
+      const cVariant = Math.max(0, Math.min(3, parseInt(body.variant || '0', 10) || 0));
+      const result = await context.contextTranslate(body, (text, dir) => safeNmtTranslate(text, dir, cVariant).then((r) => {
         if (r.error) throw new Error(r.error);
         return r.text;
       }));
@@ -506,6 +513,7 @@ const server = http.createServer(async (req, res) => {
       const uiTheme = getUiTheme();
       result.uiTheme = uiTheme;
       result.themePalette = THEME_PALETTES[uiTheme];
+      result.variant = cVariant;
       return sendJson(res, 200, result);
     }
 

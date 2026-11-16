@@ -94,11 +94,24 @@ def get_model(direction):
     print(f'[{direction}] 模型就绪: {model_dir}', flush=True)
     return _loaded[direction]
 
-def translate(direction, text, num_beams=4):
+# variant → 不同解码配置(「换个译法」用): 让同一句话产出不同但都合理的译文
+VARIANTS = {
+    0: dict(num_beams=4),                                                   # 默认(稳妥)
+    1: dict(num_beams=1),                                                   # 贪心(更直白)
+    2: dict(do_sample=True, temperature=0.75, top_p=0.9, num_return_sequences=1),  # 采样(有变化)
+    3: dict(do_sample=True, temperature=1.0, top_k=50, top_p=0.95, num_return_sequences=1),  # 最大胆
+}
+
+def translate(direction, text, num_beams=4, variant=0):
     model, tok = get_model(direction)
+    cfg = dict(VARIANTS.get(int(variant or 0), VARIANTS[0]))
+    if cfg.get('do_sample'):
+        cfg['num_beams'] = 1        # 采样必须配单 beam, 否则 transformers 忽略采样
+    else:
+        cfg.setdefault('num_beams', num_beams)
     with torch.no_grad():
         enc = tok(text, return_tensors='pt', truncation=True, max_length=256).to(device)
-        out = model.generate(**enc, max_new_tokens=256, num_beams=num_beams)
+        out = model.generate(**enc, max_new_tokens=256, **cfg)
         return tok.decode(out[0], skip_special_tokens=True)
 
 def main():
@@ -118,7 +131,7 @@ def main():
             if not text:
                 resp = {'id': req.get('id'), 'error': 'empty'}
             else:
-                resp = {'id': req.get('id'), 'text': translate(direction, text)}
+                resp = {'id': req.get('id'), 'text': translate(direction, text, variant=req.get('variant', 0))}
         except Exception as e:
             import traceback
             traceback.print_exc()

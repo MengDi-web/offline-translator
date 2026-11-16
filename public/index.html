@@ -662,10 +662,15 @@ function translationText(r) {
   return r.translation || '';
 }
 
-async function doTranslate() {
+let curVariant = 0;   // 0=默认; 1/2/3=「换个译法」
+let lastQuery = '';
+
+async function doTranslate(useVariant) {
   if (location.protocol === 'file:') { alert('请通过 http://127.0.0.1:6688 打开（先启动翻译服务）'); return; }
   const q = input.value.trim();
   if (!q) return;
+  lastQuery = q;
+  if (typeof useVariant === 'number') curVariant = useVariant;
   goBtn.disabled = true; goBtn.textContent = '翻译中…';
   try {
     if (q.includes('\n')) {
@@ -675,7 +680,7 @@ async function doTranslate() {
       for (const ln of lines) {
         const t = ln.trim();
         if (!t) { out.push(''); continue; }
-        const r = await fetch('/api/translate?q=' + encodeURIComponent(t) + '&dir=' + curDir + '&mode=' + curMode);
+        const r = await fetch('/api/translate?q=' + encodeURIComponent(t) + '&dir=' + curDir + '&mode=' + curMode + '&variant=' + curVariant);
         const j = await r.json();
         out.push(j.error ? '' : translationText(j));
       }
@@ -684,7 +689,7 @@ async function doTranslate() {
       render(lastResult);
       addHistory(q, lastResult);
     } else {
-      const r = await fetch('/api/translate?q=' + encodeURIComponent(q) + '&dir=' + curDir + '&mode=' + curMode);
+      const r = await fetch('/api/translate?q=' + encodeURIComponent(q) + '&dir=' + curDir + '&mode=' + curMode + '&variant=' + curVariant);
       const j = await r.json();
       lastResult = j;
       render(j);
@@ -706,6 +711,7 @@ function cardHtml(r) {
       ${r.dictRough ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">词典直译参考: ${esc(r.dictRough)}</div>` : ''}
       <div class="action-row">
         <button class="btn ghost copyBtn">复制</button>
+        <button class="btn ghost refreshBtn" title="换一种译法">↻ 换个译法${(r.variant || 0) > 0 ? ' · 译法' + r.variant : ''}</button>
       </div>
     </div>`;
   }
@@ -777,7 +783,8 @@ function render(r, container) {
     if (r.suggestions && r.suggestions.length) {
       html += `<div class="suggest" style="display:flex">${r.suggestions.map(s => `<span class="chip" data-w="${esc(s)}">${esc(s)}</span>`).join('')}</div>`;
       setTimeout(() => {
-        container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
+        bindRefresh(container, lastResult);
+  container.querySelectorAll('.chip[data-w]').forEach(c => c.addEventListener('click', () => {
           input.value = c.dataset.w; doTranslate();
         }));
       }, 0);
@@ -799,6 +806,14 @@ function render(r, container) {
   }));
   bindCopy(container, r);
 }
+function bindRefresh(container, r) {
+  container.querySelectorAll('.refreshBtn').forEach(btn => btn.addEventListener('click', () => {
+    if (!lastQuery) return;
+    const next = ((r && r.variant) || 0) % 3 + 1;   // 1 → 2 → 3 → 1
+    doTranslate(next);
+  }));
+}
+
 function bindCopy(container, r) {
   container.querySelectorAll('.copyBtn').forEach(btn => btn.addEventListener('click', () => {
     let txt;
@@ -827,7 +842,7 @@ function autoGrow() {
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, maxH) + 'px';
 }
-input.addEventListener('input', autoGrow);
+input.addEventListener('input', function () { autoGrow(); curVariant = 0; });
 autoGrow();
 
 input.addEventListener('keydown', (e) => {

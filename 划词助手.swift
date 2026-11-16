@@ -289,9 +289,12 @@ final class PopupPanel: NSPanel {
     let scroll = NSScrollView()
     let textView = DragTextView()
     let copyBtn = NSButton()
+    let refreshBtn = NSButton()
     let settingsBtn = NSButton()
     let closeBtn = NSButton()
     var copyText = ""
+    var curVariant = 0
+    var lastSelText = ""
 
     init() {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 380, height: 140),
@@ -329,6 +332,12 @@ final class PopupPanel: NSPanel {
         copyBtn.bezelStyle = .rounded
         copyBtn.target = self
         copyBtn.action = #selector(copyTapped)
+        refreshBtn.title = "↻"
+        refreshBtn.font = NSFont.systemFont(ofSize: 12)
+        refreshBtn.bezelStyle = .rounded
+        refreshBtn.target = self
+        refreshBtn.action = #selector(refreshTapped)
+        refreshBtn.toolTip = "换个译法"
         settingsBtn.title = "设置"
         settingsBtn.font = NSFont.systemFont(ofSize: 11)
         settingsBtn.bezelStyle = .rounded
@@ -341,7 +350,7 @@ final class PopupPanel: NSPanel {
         closeBtn.action = #selector(closeTapped)
         styleButtons()
 
-        let bar = NSStackView(views: [copyBtn, settingsBtn, closeBtn])
+        let bar = NSStackView(views: [copyBtn, refreshBtn, settingsBtn, closeBtn])
         bar.orientation = .horizontal
         bar.spacing = 8
         bar.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 8, right: 12)
@@ -367,6 +376,27 @@ final class PopupPanel: NSPanel {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// 换个译法: 用不同解码参数(贪心/采样)重新翻译当前划词内容
+    @objc func refreshTapped() {
+        guard let resp = lastResp else { return }
+        let sel = (resp["completed"] as? String) ?? (resp["original"] as? String) ?? ""
+        if sel.isEmpty { return }
+        curVariant = curVariant % 3 + 1
+        let body: [String: Any] = ["selection": sel, "context": "", "variant": curVariant]
+        guard let url = URL(string: "http://127.0.0.1:6688/api/context-translate"),
+              let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = data
+        let anchor = NSPoint(x: frame.origin.x + 24, y: frame.origin.y + frame.height)
+        URLSession.shared.dataTask(with: req) { d, _, _ in
+            guard let d = d,
+                  let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return }
+            DispatchQueue.main.async { self.show(resp: obj, near: anchor) }
+        }.resume()
+    }
 
     @objc func copyTapped() {
         if !copyText.isEmpty {
@@ -408,6 +438,11 @@ final class PopupPanel: NSPanel {
     var lastResp: [String: Any]?   // 记住最后一次响应, 设置变更后可整窗重建
 
     func show(resp: [String: Any], near point: NSPoint) {
+        let sel = (resp["completed"] as? String) ?? (resp["original"] as? String) ?? ""
+        if !sel.isEmpty && sel != lastSelText {
+            lastSelText = sel
+            curVariant = 0     // 新内容 → 回到默认译法
+        }
         lastResp = resp
         let (attr, copy) = buildAttributed(resp)
         show(attr: attr, copy: copy, near: point)

@@ -230,6 +230,31 @@ function Show-Popup($resp) {
         try { Show-Settings } catch { Log ("打开设置失败: " + $_.Exception.Message) }
     })
 
+    # 换个译法: 用不同解码参数重新翻译(采样/贪心)
+    $refreshBtn = New-Object System.Windows.Forms.Button
+    $refreshBtn.Text = '↻'
+    $refreshBtn.FlatStyle = 'Flat'
+    $refreshBtn.BackColor = HexToColor $cfg.copyColor
+    $refreshBtn.ForeColor = Get-ContrastText $refreshBtn.BackColor
+    $refreshBtn.FlatAppearance.BorderSize = 0
+    $refreshBtn.Cursor = 'Hand'
+    $refreshBtn.Add_Click({
+        param($sender, $e)
+        try {
+            $sel = [string]$script:lastResp.original
+            if (-not $sel) { $sel = [string]$script:lastResp.completed }
+            if (-not $sel) { return }
+            $script:lastVariant = ($script:lastVariant % 3) + 1
+            $body = @{ selection = $sel; context = ''; variant = $script:lastVariant } | ConvertTo-Json -Compress
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+            $r2 = Invoke-RestMethod -Uri 'http://127.0.0.1:6688/api/context-translate' -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8' -TimeoutSec 60
+            if ($r2) {
+                Log ("换个译法: variant=" + $script:lastVariant)
+                Show-Popup $r2
+            }
+        } catch { Log ("换译法失败: " + $_.Exception.Message) }
+    })
+
     # 打开翻译大页面(浏览器)
     $pageBtn = New-Object System.Windows.Forms.Button
     $pageBtn.Text = '打开页面'
@@ -325,6 +350,7 @@ function Show-Popup($resp) {
     $f.Controls.Add($title)
     $f.Controls.Add($bodyLbl)
     $f.Controls.Add($copyBtn)
+    $f.Controls.Add($refreshBtn)
     $f.Controls.Add($pageBtn)
     $f.Controls.Add($settingsBtn)
     $f.Controls.Add($closeBtn)
@@ -345,10 +371,11 @@ function Show-Popup($resp) {
     $bodyLbl.Height = [int][Math]::Min($lineH * 6 + 14, [Math]::Max($lineH + 14, $measured.Height + 14))
     $popupH = [int]($bodyLbl.Bottom) + 40
     $f.ClientSize = New-Object System.Drawing.Size($w, $popupH)
-    $copyBtn.SetBounds(12, $bodyLbl.Bottom + 6, 82, 28)
-    $pageBtn.SetBounds(98, $bodyLbl.Bottom + 6, 68, 28)
-    $settingsBtn.SetBounds(170, $bodyLbl.Bottom + 6, 46, 28)
-    $closeBtn.SetBounds($w - 38, $bodyLbl.Bottom + 6, 26, 28)
+    $copyBtn.SetBounds(10, $bodyLbl.Bottom + 6, 74, 28)
+    $refreshBtn.SetBounds(88, $bodyLbl.Bottom + 6, 26, 28)
+    $pageBtn.SetBounds(118, $bodyLbl.Bottom + 6, 58, 28)
+    $settingsBtn.SetBounds(180, $bodyLbl.Bottom + 6, 42, 28)
+    $closeBtn.SetBounds($w - 36, $bodyLbl.Bottom + 6, 26, 28)
 
     # 圆角（WinForms 原生不支持，这里用 Region 近似）
     if ($cfg.radius -gt 0) {
@@ -426,6 +453,7 @@ $timer.add_Tick({
             $script:lastText = $t; $script:lastCopyTime = $now
             return
         }
+        if ($t -ne $script:lastText) { $script:lastVariant = 0 }
         $resp = Request-Translation $t
         if ($resp) {
             if ($resp.disabled) {
@@ -447,6 +475,7 @@ $timer.add_Tick({
 $script:lastText = ''
 $script:lastCopyTime = [DateTime]::MinValue
 $script:borderColor = '#E8DFCF'
+$script:lastVariant = 0
 # 启动时的基线：开启前就躺在剪贴板里的内容不算一次新划词
 $script:lastSeen = $null
 $script:lastClipSeq = 0
