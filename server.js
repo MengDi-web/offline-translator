@@ -370,7 +370,8 @@ function readBody(req) {
 
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://127.0.0.1');
-  const p = u.pathname;
+  let p = u.pathname;
+  try { p = decodeURIComponent(p); } catch { /* 非法编码保持原样 */ }   // 支持中文文件名（主题设置器.html）
 
   try {
     // API

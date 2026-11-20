@@ -123,5 +123,8 @@ miaomiao翻译器 · 网盘分发版
 各文件夹内有该系统的详细安装说明。
 EOF
 
+# 清理 dist/ 根下的重复 zip（内容已复制进 网盘分发/，避免多占 1.1G）
+rm -f "$ROOT/dist/miaomiao-mac.zip" "$ROOT/dist/miaomiao-win.zip"
+
 echo "✅ 网盘分发版完成: dist/网盘分发/ ($(du -sh "$OUT" | cut -f1))"
 echo "   macOS/  ·  Windows/"

@@ -44,20 +44,45 @@ node server.js        # 网页界面 → http://127.0.0.1:6688
 ## 目录结构
 
 ```
-├── server.js            零依赖本地服务器（node:http + 神经子进程）
-├── translate.js         命令行入口
-├── lib/                 词典引擎 + 划词上下文服务（context.js）
-├── public/index.html    网页界面（单文件，三引擎模式）
-├── neural/
-│   ├── models/          神经模型（Release 附件下载，不入库）
-│   ├── nmt_server.py    常驻神经翻译后端
-│   ├── fine_tune.py     微调脚本（CUDA/MPS 自适应）
-│   └── eval_*.py        评测（clean-dev / 长难句分领域）
-├── 划词助手.swift        macOS 划词助手源码（AppKit）
-├── windows/             Windows 版（PowerShell 划词助手 + 启动脚本 + 安装说明）
-├── tools/               词典/模型构建脚本
-└── data/                词典数据（ECDICT / CC-CEDICT / jieba）
+本地翻译器/
+├── server.js              零依赖本地服务器（node:http + 神经子进程）
+├── translate.js           命令行入口（node translate.js "hello"）
+├── package.json
+├── lib/                   词典引擎 + 划词上下文服务（context.js）
+├── public/                网页界面
+│   ├── index.html         主页面（单文件，三引擎模式）
+│   ├── color-picker.html  配色选择器（全模拟效果图预览）
+│   └── 主题设置器.html     主题/配色编辑工具
+├── neural/                神经翻译
+│   ├── models/            模型权重（不入库，随安装包分发）
+│   ├── data/              训练语料（clean/long/tune-en2zh/tune-eval）
+│   ├── nmt_server.py      常驻神经翻译后端（stdin/stdout JSON 行协议）
+│   ├── fine_tune.py       微调脚本（支持 --device cpu/mps、--model、--data）
+│   └── eval_*.py          评测脚本
+├── windows/               Windows 版
+│   ├── install.cmd        一键部署（内置 Node/Python/wheels/模型，MSI 失败自动用免安装 Python）
+│   ├── start.bat          启动（黑窗 + 浏览器页面）
+│   ├── xuanci_helper.ps1  划词弹窗助手（WinForms + 托盘）
+│   ├── create-shortcut.cmd 生成桌面快捷方式（带 miaomiao.ico）
+│   └── diagnose.bat       环境自检
+├── 划词助手.swift          macOS 划词助手源码（AppKit，含弹窗/设置/托盘）
+├── tools/                 构建脚本（打包、词典、模型、UTF-8 zip）
+├── data/                  词典数据（ECDICT / CC-CEDICT / jieba）+ 运行时状态
+├── docs/                  文档（部署说明 / 发布指南 / 安装包报告）
+├── 训练素材/               训练素材（短句 80 条 / 长难句 60 条 / 长难句数据库）
+│   └── 翻译数据库/
+└── dist/                  构建产物（不入库）
+    ├── miaomiao翻译器.app   macOS 应用（可直接拖进「应用程序」）
+    ├── 网盘分发/            对外分发（macOS/ + Windows/ + 安装说明）
+    ├── offline-win/        Windows 离线运行时（Node/Python/VC++）
+    └── wheels-win/         Windows 离线 Python 依赖轮子
 ```
+
+> 日常只改 `server.js` / `public/` / `划词助手.swift` / `windows/`，改完：
+> 1) 同步 `dist/miaomiao翻译器.app/Contents/Resources/` 并 `codesign --force --sign - --deep`
+> 2) 跑 `bash tools/build-cloud-package.sh` 重新出包（产物在 `dist/网盘分发/`）
+>
+> `tools/build-macos-app.sh` 只在需要**重建 .app 骨架**时跑。
 
 ## 训练报告
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+# 已废弃：本脚本生成的是"源码包"(Windows 不含模型)，现由 build-cloud-package.sh 生成离线完整包
+# 保留仅作参考。
 # build-dist-package.sh — 构建「miaomiao翻译器-安装包」（内含 macOS / Windows 两个子包 + 说明）
 set -e
 cd "$(dirname "$0")/.."
